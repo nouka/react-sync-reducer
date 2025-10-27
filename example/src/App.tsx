@@ -82,10 +82,13 @@ function App() {
         }
         case 'answer':
           await p2pManager.receiveAnswerFromPeer(sdp)
-          if (isGamePlaying) {
-            socket.emit('START_GAME')
+          if (!isGamePlaying) {
+            setIsHost(true)
+            setIsGamePlaying(true)
           }
-          setStatus('receive answer')
+          socket.emit('START_GAME')
+
+          setStatus('start game')
           break
         default:
           console.log('unkown sdp...')
@@ -121,24 +124,7 @@ function App() {
     })()
   }, [bootstrap])
 
-  const handleGameStart = useCallback(async () => {
-    if (isGamePlaying) return
-    const { socket } = await socketBuilder
-    setIsHost(true)
-    setIsGamePlaying(true)
-    socket.emit('START_GAME')
-    setStatus('start game')
-  }, [socketBuilder, isGamePlaying])
-
-  if (!isGamePlaying)
-    return (
-      <>
-        <p>{status}</p>
-        {status === 'receive answer' && (
-          <button onClick={handleGameStart}>StartGame</button>
-        )}
-      </>
-    )
+  if (!isGamePlaying) return <p>{status}</p>
 
   return (
     <SyncStateProvider

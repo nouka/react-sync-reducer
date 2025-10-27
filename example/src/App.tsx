@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  CustomEventType,
-  P2PManager,
-  SyncStateProvider,
-  useSyncState,
-  type Handler
-} from 'react-sync-reducer'
+import { P2PManager, SyncStateProvider, useSyncState } from 'react-sync-reducer'
 import { reducer } from './reducers'
 import SocketBuilder from './SocketBuilder'
 import { ActionType } from './types/action'
-import { customEventListener } from './utils'
 
 const DEFAULT_ROOM_NAME = 'test_room'
 
@@ -131,10 +124,7 @@ function App() {
       initState={{}}
       isHost={isHost}
       reducer={reducer}
-      send={p2pManager.broadcastDataChannel}
-      registerHandler={(handler: Handler<string>) =>
-        customEventListener(CustomEventType.ON_DATA_CHANNEL_MESSAGE, handler)
-      }
+      p2pManager={p2pManager}
     >
       <Content />
     </SyncStateProvider>

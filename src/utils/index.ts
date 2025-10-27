@@ -2,7 +2,9 @@ import { Reducer } from 'react'
 import {
   ActionBase,
   ActionType,
+  CustomEventType,
   DeliveAction,
+  Handler,
   RequestAction,
   State
 } from '../types'
@@ -61,3 +63,20 @@ export const handleAction =
       revision: nextRevision
     }
   }
+
+/**
+ * カスタムイベントをリッスンするハンドラの登録/登録解除を行う
+ *
+ * @param type カスタムイベントのタイプ
+ * @param handler イベントハンドラ
+ *
+ * @returns 登録解除関数
+ */
+export const customEventListener = <T>(
+  type: CustomEventType,
+  handler: Handler<T>
+) => {
+  const listener = (e: Event) => handler((e as CustomEvent).detail)
+  window.addEventListener(type, listener, false)
+  return () => window.removeEventListener(type, listener, false)
+}

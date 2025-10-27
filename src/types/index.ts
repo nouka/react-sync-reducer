@@ -1,4 +1,5 @@
 import { Reducer } from 'react'
+import { P2PManager } from '../adapters/P2PManager'
 
 export type Identifier = string | number
 
@@ -28,8 +29,7 @@ export type SyncStateProps = {
   initState?: State
   isHost?: boolean
   reducer: Reducer<any, ActionBase<any, any>>
-  send: (message: string) => void
-  registerHandler: (handler: Handler<string>) => () => void
+  p2pManager: P2PManager
 }
 
 export enum CustomEventType {

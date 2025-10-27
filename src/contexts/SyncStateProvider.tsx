@@ -3,10 +3,16 @@ import * as React from 'react'
 import {
   ActionBase,
   ActionType,
+  CustomEventType,
   ISyncStateContext,
   SyncStateProps
 } from '../types'
-import { handleAction, isDeliveAction, isRequestAction } from '../utils/'
+import {
+  customEventListener,
+  handleAction,
+  isDeliveAction,
+  isRequestAction
+} from '../utils/'
 
 /**
  * State を複数名で同期するためのコンテキスト
@@ -28,8 +34,7 @@ const SyncStateContext = React.createContext<ISyncStateContext>({
  *
  * isHost ....................... ホスト
  * reducer ...................... 状態データをハンドリングする関数、useReducer を使って state を書き換えます。
- * send ......................... データチャンネルへの送信関数
- * registerHandler .............. データチャンネルのハンドラ登録関数
+ * p2pManager ................... P2PManager のインスタンス
  *
  * @returns
  */
@@ -38,8 +43,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
   initState = {},
   isHost = false,
   reducer,
-  send,
-  registerHandler
+  p2pManager
 }) => {
   /**
    * Reducer
@@ -56,7 +60,10 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
    */
   React.useEffect(() => {
     const handler = isHost ? hostHandler : clientHandler
-    const unsubscribe = registerHandler(handler)
+    const unsubscribe = customEventListener(
+      CustomEventType.ON_DATA_CHANNEL_MESSAGE,
+      handler
+    )
     return () => unsubscribe()
   }, [isHost])
 
@@ -69,7 +76,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
     console.debug('sync state:', state)
     revision.current = state.revision ?? 0
     isHost &&
-      send(
+      p2pManager.broadcastDataChannel(
         stringify({
           type: ActionType.DELIVE,
           payload: state
@@ -87,7 +94,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
   const dispatchAction = (action: ActionBase<any, any>) => {
     isHost
       ? dispatch(action)
-      : send(
+      : p2pManager.broadcastDataChannel(
           stringify({
             type: ActionType.REQUEST,
             payload: action

@@ -1,17 +1,10 @@
 import { CustomEventType, Identifier } from '../types'
 
-/**
- * P2P接続の管理クラス
- */
-export class P2PManager {
-  private static instance: P2PManager | undefined = undefined
-
-  public static getInstance = () => {
-    if (this.instance) return this.instance
-    this.instance = new P2PManager()
-    return this.instance
-  }
-
+export interface Sender {
+  broadcast(message: string): void
+  sendTo(id: Identifier, message: string): void
+}
+export class WebRTCSender implements Sender {
   /**
    * ピア接続のリスト
    */
@@ -19,33 +12,28 @@ export class P2PManager {
     Identifier,
     { pc?: RTCPeerConnection; dc?: RTCDataChannel }
   >()
-
   /**
    * ICE server URLs
    */
-  private peerConnectionConfig = {
+  private peerConnectionConfig: RTCConfiguration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   }
-
   /**
    * Data channel オプション
    */
-  private dataChannelOptions = {
+  private dataChannelOptions: RTCDataChannelInit = {
     ordered: false
   }
-
-  /**
-   * すべてのピアにメッセージを配信する
-   *
-   * @param message メッセージ
-   */
-  public broadcastDataChannel = (message: string) => {
+  public broadcast = (message: string): void => {
     this.peers.forEach((peer) => {
       if (peer.dc?.readyState !== 'open') return
       peer.dc?.send(message)
     })
   }
-
+  public sendTo = (id: Identifier, message: string): void => {
+    if (this.peers.get(id)?.dc?.readyState !== 'open') return
+    this.peers.get(id)?.dc?.send(message)
+  }
   /**
    * ピア接続を作成しオファーを送信する
    * 通信の最初のシーケンス

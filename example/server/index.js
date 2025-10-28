@@ -46,19 +46,6 @@ io.on('connection', (socket) => {
   })
 
   /**
-   * 接続完了イベント
-   */
-  socket.emit('RECEIVE_CONNECTED', { id: socket.id })
-
-  /**
-   * 切断イベントの登録
-   */
-  socket.on('disconnect', () => {
-    console.log('id=' + socket.id + ' exit room:' + socket.roomname)
-    socket.broadcast.to(socket.roomname).emit('LEAVE_USER', { id: socket.id })
-  })
-
-  /**
    * 入室イベント
    */
   socket.on('SEND_ENTER', function (roomname) {
@@ -104,6 +91,6 @@ io.on('connection', (socket) => {
    * GAMEの実行
    */
   socket.on('START_GAME', function () {
-    socket.broadcast.to(socket.roomname).emit('STARTED_GAME')
+    socket.broadcast.to(socket.roomname).emit('STARTED_GAME', socket.id)
   })
 })

@@ -13,6 +13,7 @@ function App() {
 const Content = () => {
   const { state, dispatchAction } = useSyncState()
 
+  // TODO: もう少しリッチなゲームを作成する
   return (
     <>
       <p>{state.sharedString}</p>

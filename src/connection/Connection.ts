@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client'
-import SocketBuilder from '../adapters/SocketBuilder'
+import SocketBuilder, { EVENTS } from '../adapters/SocketBuilder'
 import { Receiver, WebRTCReceiver } from '../receiver/Receiver'
 import { Sender, WebRTCSender } from '../sender/Sender'
 import { CustomEventType, Identifier, Peers } from '../types'
@@ -52,84 +52,86 @@ export class WebRTCConnection implements Connection {
   }
   public connect = (config: WebRTCConfig): Promise<ConnectionState> => {
     return new Promise<ConnectionState>((resolve) => {
-      SocketBuilder.build().then(({ socket, id }) => {
-        this.socket = socket
-        this.id = id
-        console.log('connected to signaling server. my id=', this.id)
-
-        // 自動的にJOIN
-        this.socket?.emit('SEND_ENTER', config.roomName)
-
-        // 切断などで退室ユーザーを確認した場合
-        this.socket?.on('LEAVE_USER', (data) => {
-          console.log('LEAVE_USER', data)
-          this.closePeerConnection(data.id)
-        })
-
-        // Join Roomを受け付けてオファーを作成し送り返す
-        this.socket?.on('RECEIVE_CALL', async (data) => {
-          console.log('RECEIVE_CALL', data)
-          const peerConnection = await this.makeOfferToPeer(data.id, (evt) => {
-            this.socket?.emit('SEND_CANDIDATE', {
-              target: data.id,
-              ice: evt.candidate
-            })
-          })
-          if (!peerConnection) return
-          this.socket?.emit('SEND_SDP', {
+      const handlers = new Map()
+      // 接続完了時
+      handlers.set(EVENTS.RECEIVE_CONNECTED, (socket, res, data) => {
+        res({ socket, id: data.id })
+      })
+      // 切断などで退室ユーザーを確認した場合
+      handlers.set(EVENTS.LEAVE_USER, (data) => {
+        console.log('LEAVE_USER', data)
+        this.closePeerConnection(data.id)
+      })
+      // Join Roomを受け付けてオファーを作成し送り返す
+      handlers.set(EVENTS.RECEIVE_CALL, async (socket, data) => {
+        console.log('RECEIVE_CALL', data)
+        const peerConnection = await this.makeOfferToPeer(data.id, (evt) => {
+          socket.emit('SEND_CANDIDATE', {
             target: data.id,
-            sdp: peerConnection.localDescription
+            ice: evt.candidate
           })
         })
-
-        // SDPの受け付け
-        // オファーの場合はアンサーを作成して送り返す
-        // アンサーの場合はremoteDescriptionにセットして終了
-        this.socket?.on('RECEIVE_SDP', async (sdp) => {
-          console.log('RECEIVE_SDP', sdp)
-          switch (sdp.type) {
-            case 'offer': {
-              const peerConnection = await this.receiveOfferFromPeer(
-                sdp,
-                (evt) => {
-                  this.socket?.emit('SEND_CANDIDATE', {
-                    target: sdp.id,
-                    ice: evt.candidate
-                  })
-                }
-              )
-              if (!peerConnection) return
-              this.socket?.emit('SEND_SDP', {
-                target: sdp.id,
-                sdp: peerConnection.localDescription
-              })
-              return
-            }
-            case 'answer':
-              await this.receiveAnswerFromPeer(sdp)
-              this.socket?.emit('START_GAME')
-              this.id && (this.hostId = this.id)
-              resolve(State.CONNECTED)
-              return
-            default:
-              console.log('unkown sdp...')
-              resolve(State.PENDING)
-              return
-          }
-        })
-
-        // ICE CANDIDATEの受け付け
-        this.socket?.on('RECEIVE_CANDIDATE', (ice) => {
-          console.log('RECEIVE_CANDIDATE', ice)
-          this.receiveCandidateFromPeer(ice)
-        })
-
-        // ホストのゲーム開始を受けて、クライアントがゲームを起動する処理
-        this.socket?.on('STARTED_GAME', (id) => {
-          this.hostId = id
-          resolve(State.CONNECTED)
+        if (!peerConnection) return
+        socket.emit('SEND_SDP', {
+          target: data.id,
+          sdp: peerConnection.localDescription
         })
       })
+      // SDPの受け付け
+      // オファーの場合はアンサーを作成して送り返す
+      // アンサーの場合はremoteDescriptionにセットして終了
+      handlers.set(EVENTS.RECEIVE_SDP, async (socket, sdp) => {
+        console.log('RECEIVE_SDP', sdp)
+        switch (sdp.type) {
+          case 'offer': {
+            const peerConnection = await this.receiveOfferFromPeer(
+              sdp,
+              (evt) => {
+                socket.emit('SEND_CANDIDATE', {
+                  target: sdp.id,
+                  ice: evt.candidate
+                })
+              }
+            )
+            if (!peerConnection) return
+            socket.emit('SEND_SDP', {
+              target: sdp.id,
+              sdp: peerConnection.localDescription
+            })
+            return
+          }
+          case 'answer':
+            await this.receiveAnswerFromPeer(sdp)
+            socket.emit('START_GAME')
+            this.id && (this.hostId = this.id)
+            resolve(State.CONNECTED)
+            return
+          default:
+            console.log('unkown sdp...')
+            resolve(State.PENDING)
+            return
+        }
+      })
+      // ICE CANDIDATEの受け付け
+      handlers.set(EVENTS.RECEIVE_CANDIDATE, (ice) => {
+        console.log('RECEIVE_CANDIDATE', ice)
+        this.receiveCandidateFromPeer(ice)
+      })
+      // ホストのゲーム開始を受けて、クライアントがゲームを起動する処理
+      handlers.set(EVENTS.STARTED_GAME, (id) => {
+        this.hostId = id
+        resolve(State.CONNECTED)
+      })
+      SocketBuilder.registerHandlers(handlers)
+        .build()
+        .then(({ socket, id }) => {
+          this.socket = socket
+          this.id = id
+          console.log('connected to signaling server. my id=', this.id)
+
+          // 自動的にJOIN
+          this.socket?.emit('SEND_ENTER', config.roomName)
+        })
     })
   }
   public close = (): ConnectionState => {

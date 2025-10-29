@@ -1,6 +1,10 @@
 import { Reducer } from 'react'
 
 export type Identifier = string | number
+export type Peers = Map<
+  Identifier,
+  { pc?: RTCPeerConnection; dc?: RTCDataChannel }
+>
 
 export type ActionBase<T, P> = {
   type: T

@@ -4,6 +4,7 @@ import { Receiver, WebRTCReceiver } from '../receiver/Receiver'
 import { Sender, WebRTCSender } from '../sender/Sender'
 import { CustomEventType, Identifier, Peers } from '../types'
 
+// TODO: interface, 定数の分離
 export const State = {
   CLOSED: 'CLOSED',
   CONNECTED: 'CONNECTED',
@@ -31,12 +32,14 @@ export class WebRTCConnection implements Connection {
   private peers: Peers = new Map()
   /**
    * ICE server URLs
+   * TODO: Configから変更可能にする
    */
   private peerConnectionConfig: RTCConfiguration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   }
   /**
    * Data channel オプション
+   * TODO: Senderに移動し、Configから変更可能にする
    */
   private dataChannelOptions: RTCDataChannelInit = {
     ordered: false
@@ -50,7 +53,7 @@ export class WebRTCConnection implements Connection {
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }
-  public connect = (config: WebRTCConfig): Promise<ConnectionState> => {
+  public connect = async (config: WebRTCConfig): Promise<ConnectionState> => {
     return new Promise<ConnectionState>((resolve) => {
       const handlers = new Map()
       // 接続完了時
@@ -130,12 +133,14 @@ export class WebRTCConnection implements Connection {
           console.log('connected to signaling server. my id=', this.id)
 
           // 自動的にJOIN
-          this.socket?.emit('SEND_ENTER', config.roomName)
+          socket.emit('SEND_ENTER', config.roomName)
         })
     })
   }
   public close = (): ConnectionState => {
     this.socket?.emit('SEND_EXIT')
+    this.socket?.close()
+    // TODO: closePeerConnections を実行（全コネクションをcloseする）
     return State.CLOSED
   }
   /**

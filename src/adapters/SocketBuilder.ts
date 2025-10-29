@@ -4,6 +4,8 @@ import { Identifier } from '../types'
 // TODO: デフォルトサーバportにして、外部から変更可能に
 const SERVER_PORT = 9030
 
+// TODO: Emitイベントも管理するように
+// TODO: Typeを厳密にチェックできるように
 export const EVENTS = {
   RECEIVE_CONNECTED: 'RECEIVE_CONNECTED',
   LEAVE_USER: 'LEAVE_USER',
@@ -55,6 +57,7 @@ export default class SocketBuilder {
   private static handlers: EventHandlers = new Map()
   private constructor() {}
 
+  // TODO: Configの追加
   public static registerHandlers = (handlers: EventHandlers) => {
     this.handlers = handlers
     return this

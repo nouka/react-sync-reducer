@@ -1,10 +1,6 @@
 import stringify from 'fast-safe-stringify'
 import * as React from 'react'
-import {
-  ConnectionManager,
-  State as ConnectionState,
-  WebRTCConnectionManager
-} from '../connection/Connection'
+import { ConnectionState } from '../constants'
 import {
   ActionBase,
   ActionType,
@@ -13,6 +9,7 @@ import {
   SyncStateProps
 } from '../types'
 import { handleAction, isDeliveAction, isRequestAction } from '../utils/'
+import { ConnectionManager } from '../connection-manager/ConnectionManager'
 
 /**
  * State を複数名で同期するためのコンテキスト
@@ -46,7 +43,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
   reducer
 }) => {
   const isBooted = React.useRef<boolean>(false)
-  const connection = React.useMemo(() => new WebRTCConnectionManager(), [])
+  const connection = React.useMemo(() => new ConnectionManager(), [])
 
   const [isGamePlaying, setIsGamePlaying] = React.useState<boolean>(false)
 

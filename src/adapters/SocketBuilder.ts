@@ -1,10 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 import { Identifier } from '../types'
 
-// TODO: デフォルトサーバportにして、外部から変更可能に
-const SERVER_PORT = 9030
-
-// TODO: Emitイベントも管理するように
 // TODO: Typeを厳密にチェックできるように
 export const EVENTS = {
   RECEIVE_CONNECTED: 'RECEIVE_CONNECTED',
@@ -13,6 +9,14 @@ export const EVENTS = {
   RECEIVE_SDP: 'RECEIVE_SDP',
   RECEIVE_CANDIDATE: 'RECEIVE_CANDIDATE',
   STARTED_GAME: 'STARTED_GAME'
+} as const
+
+export const EMIT_EVENTS = {
+  SEND_ENTER: 'SEND_ENTER',
+  SEND_EXIT: 'SEND_EXIT',
+  SEND_CANDIDATE: 'SEND_CANDIDATE',
+  SEND_SDP: 'SEND_SDP',
+  START_GAME: 'START_GAME'
 } as const
 
 export type EventHandlers =
@@ -53,19 +57,28 @@ export type EventHandlers =
     >
   | Map<typeof EVENTS.STARTED_GAME, (id: Identifier) => void>
 
+export interface SocketBuilderOptions {
+  serverUrl: string
+}
 export default class SocketBuilder {
+  private static defaultOptions: SocketBuilderOptions = {
+    serverUrl: `localhost:9030`
+  }
   private static handlers: EventHandlers = new Map()
+
   private constructor() {}
 
-  // TODO: Configの追加
   public static registerHandlers = (handlers: EventHandlers) => {
     this.handlers = handlers
     return this
   }
 
-  public static async build() {
+  public static async build(
+    options: Partial<SocketBuilderOptions> | undefined
+  ) {
+    const { serverUrl } = this.margeDefaultOptions(options)
     return new Promise<{ socket: Socket; id: Identifier }>((resolve) => {
-      const socket = io(`localhost:${SERVER_PORT}`)
+      const socket = io(serverUrl)
       this.handlers.forEach((handler, event) => {
         socket.on(event, (data) => {
           if (event === EVENTS.RECEIVE_CONNECTED) {
@@ -82,5 +95,14 @@ export default class SocketBuilder {
         })
       })
     })
+  }
+
+  private static margeDefaultOptions = (
+    options: Partial<SocketBuilderOptions> | undefined
+  ): SocketBuilderOptions => {
+    return {
+      ...this.defaultOptions,
+      ...options
+    }
   }
 }

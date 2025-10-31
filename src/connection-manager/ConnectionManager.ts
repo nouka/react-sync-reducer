@@ -1,9 +1,9 @@
 import { Socket } from 'socket.io-client'
 import SocketBuilder, { EVENTS } from '../adapters/SocketBuilder'
-import { WebRTCConnection } from '../connection/Connection'
+import { WebRTCConnection } from '../connection/WebRTCConnection'
 import { ConnectionState } from '../constants'
-import { WebRTCReceiver } from '../receiver/Receiver'
-import { WebRTCSender } from '../sender/Sender'
+import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
+import { WebRTCSender } from '../sender/WebRTCSender'
 import { Identifier } from '../types'
 
 // TODO: interface, 定数の分離

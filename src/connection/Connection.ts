@@ -2,7 +2,7 @@ import { Socket } from 'socket.io-client'
 import SocketBuilder, { EVENTS } from '../adapters/SocketBuilder'
 import { Receiver, WebRTCReceiver } from '../receiver/Receiver'
 import { Sender, WebRTCSender } from '../sender/Sender'
-import { CustomEventType, Identifier, Peers } from '../types'
+import { CustomEventType, Identifier } from '../types'
 
 // TODO: interface, 定数の分離
 export const State = {
@@ -14,6 +14,10 @@ export const State = {
 export type ConnectionState = (typeof State)[keyof typeof State]
 export interface Config {}
 export interface Connection {
+  connect(config: Config): ConnectionState
+  close(): ConnectionState
+}
+export interface ConnectionManager {
   connect(config: Config): Promise<ConnectionState>
   close(): ConnectionState
   get sender(): Sender
@@ -22,14 +26,15 @@ export interface Connection {
   get isHost(): boolean
 }
 
-export interface WebRTCConfig extends Config {
+export interface ConnectionManagerConfig {
   roomName: string
 }
+export interface WebRTCConfig extends Config, RTCConfiguration {
+  onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
+}
 export class WebRTCConnection implements Connection {
-  /**
-   * ピア接続のリスト
-   */
-  private peers: Peers = new Map()
+  private peerConnection: RTCPeerConnection
+  private dataChannel: RTCDataChannel | undefined
   /**
    * ICE server URLs
    * TODO: Configから変更可能にする
@@ -44,6 +49,125 @@ export class WebRTCConnection implements Connection {
   private dataChannelOptions: RTCDataChannelInit = {
     ordered: false
   }
+  constructor(config: WebRTCConfig) {
+    this.peerConnection = this.createPeerConnection(config.onIceCandidate)
+  }
+  public connect(config: WebRTCConfig): ConnectionState {
+    const { onIceCandidate } = config
+    this.peerConnection = this.createPeerConnection(onIceCandidate)
+    return State.PENDING
+  }
+  public close(): ConnectionState {
+    this.dataChannel?.close()
+    this.peerConnection?.close()
+    return State.CLOSED
+  }
+  /**
+   * 新しい RTCPeerConnection を作成する
+   *
+   * @param id 通信相手のID
+   * @param onIceCandidate ICE CANDIDATEのハンドラ
+   * @returns
+   */
+  private createPeerConnection = (
+    onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
+  ) => {
+    let pc = new RTCPeerConnection(this.peerConnectionConfig)
+
+    // ICE candidate 取得時のイベントハンドラを登録
+    pc.onicecandidate = async (evt) => {
+      if (evt.candidate) {
+        // 一部の ICE candidate を取得
+        // Trickle ICE では ICE candidate を相手に通知する
+        console.debug(evt.candidate)
+        onIceCandidate(evt)
+        console.log('Collecting ICE candidates')
+      } else {
+        // 全ての ICE candidate の取得完了（空の ICE candidate イベント）
+        // Vanilla ICE では，全てのICE candidate を含んだ SDP を相手に通知する
+        // （SDP は pc.localDescription.sdp で取得できる）
+        // 今回は手動でシグナリングするため textarea に SDP を表示する
+        console.log('Vanilla ICE ready')
+      }
+    }
+
+    pc.onconnectionstatechange = async (_evt) => {
+      switch (pc.connectionState) {
+        case 'connected':
+          console.log('connected')
+          break
+        case 'disconnected':
+        case 'failed':
+          console.log('disconnected')
+          break
+        case 'closed':
+          console.log('closed')
+          break
+      }
+    }
+
+    pc.ondatachannel = (evt) => {
+      console.debug('Data channel created:', evt)
+      this.setupDataChannel(evt.channel)
+      this.dataChannel = evt.channel
+    }
+
+    return pc
+  }
+
+  public createDataChannel = () => {
+    const dataChannel = this.peerConnection.createDataChannel(
+      'test-data-channel',
+      this.dataChannelOptions
+    )
+    this.setupDataChannel(dataChannel)
+    this.dataChannel = dataChannel
+  }
+
+  /**
+   * Data channel のイベントハンドラを定義する
+   *
+   * @param dc DATA CHANNEL
+   */
+  private setupDataChannel = (dc: RTCDataChannel) => {
+    dc.onerror = function (error) {
+      console.error('Data channel error:', error)
+    }
+    dc.onmessage = function (evt) {
+      console.info('Data channel message:', evt.data)
+      const event = new CustomEvent(CustomEventType.ON_DATA_CHANNEL_MESSAGE, {
+        detail: evt.data
+      })
+      window.dispatchEvent(event)
+    }
+    dc.onopen = function (evt) {
+      console.debug('Data channel opened:', evt)
+    }
+    dc.onclose = function () {
+      console.debug('Data channel closed.')
+    }
+  }
+  get pc() {
+    return this.peerConnection
+  }
+  get dc() {
+    if (!this.dataChannel) {
+      throw new Error('Data channel is not established yet.')
+    }
+    return this.dataChannel
+  }
+  set pc(peerConnection: RTCPeerConnection) {
+    this.peerConnection = peerConnection
+  }
+  set dc(dataChannel: RTCDataChannel) {
+    this.dataChannel = dataChannel
+  }
+}
+export class WebRTCConnectionManager implements ConnectionManager {
+  /**
+   * ピア接続のリスト
+   */
+  private connections: Map<Identifier, WebRTCConnection> = new Map()
   private senderInstance: WebRTCSender
   private receiverInstance: WebRTCReceiver
   private socket: Socket | undefined
@@ -53,7 +177,9 @@ export class WebRTCConnection implements Connection {
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }
-  public connect = async (config: WebRTCConfig): Promise<ConnectionState> => {
+  public connect = async (
+    config: ConnectionManagerConfig
+  ): Promise<ConnectionState> => {
     return new Promise<ConnectionState>((resolve) => {
       const handlers = new Map()
       // 接続完了時
@@ -155,29 +281,20 @@ export class WebRTCConnection implements Connection {
     id: Identifier,
     onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
   ) => {
-    const peerConnection =
-      this.peers.get(id)?.pc ?? this.createPeerConnection(id, onIceCandidate)
+    const conn = this.getConnection(id, onIceCandidate)
 
     // Data channel を生成
-    const dataChannel = peerConnection.createDataChannel(
-      'test-data-channel',
-      this.dataChannelOptions
-    )
-    this.setupDataChannel(dataChannel)
-
-    if (!this.peers.get(id)?.pc) {
-      this.peers.set(id, { pc: peerConnection, dc: dataChannel })
-    }
+    conn.createDataChannel()
 
     try {
-      const sessionDescription = await peerConnection.createOffer()
+      const sessionDescription = await conn.pc.createOffer()
       console.debug('createOffer() succeeded.')
-      await peerConnection.setLocalDescription(sessionDescription)
+      await conn.pc.setLocalDescription(sessionDescription)
       // setLocalDescription() が成功した場合
       // Trickle ICE ではここで SDP を相手に通知する
       // Vanilla ICE では ICE candidate が揃うのを待つ
       console.debug('setLocalDescription() succeeded.')
-      return peerConnection
+      return conn.pc
     } catch (err) {
       console.error('setLocalDescription() failed.', err)
     }
@@ -197,31 +314,25 @@ export class WebRTCConnection implements Connection {
     onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
   ) => {
     // Peer Connection を生成
-    const peerConnection =
-      this.peers.get(sdp.id)?.pc ??
-      this.createPeerConnection(sdp.id, onIceCandidate)
-    if (!this.peers.get(sdp.id)?.pc) {
-      const peer = this.peers.get(sdp.id)
-      this.peers.set(sdp.id, { ...peer, pc: peerConnection })
-    }
+    const conn = this.getConnection(sdp.id, onIceCandidate)
 
     let offer = new RTCSessionDescription(sdp)
     try {
-      await peerConnection.setRemoteDescription(offer)
+      await conn.pc.setRemoteDescription(offer)
       console.debug('setRemoteDescription() succeeded.')
     } catch (err) {
       console.error('setRemoteDescription() failed.', err)
     }
     // Answer を生成
     try {
-      const sessionDescription = await peerConnection.createAnswer()
+      const sessionDescription = await conn.pc.createAnswer()
       console.debug('createAnswer() succeeded.')
-      await peerConnection.setLocalDescription(sessionDescription)
+      await conn.pc.setLocalDescription(sessionDescription)
       // setLocalDescription() が成功した場合
       // Trickle ICE ではここで SDP を相手に通知する
       // Vanilla ICE では ICE candidate が揃うのを待つ
       console.debug('setLocalDescription() succeeded.')
-      return peerConnection
+      return conn.pc
     } catch (err) {
       console.error('setLocalDescription() failed.', err)
     } finally {
@@ -240,7 +351,7 @@ export class WebRTCConnection implements Connection {
   public receiveAnswerFromPeer = async (
     sdp: RTCSessionDescription & { id: string }
   ) => {
-    const peerConnection = this.peers.get(sdp.id)?.pc
+    const peerConnection = this.connections.get(sdp.id)?.pc
     if (!peerConnection) return
     let answer = new RTCSessionDescription(sdp)
     try {
@@ -260,7 +371,7 @@ export class WebRTCConnection implements Connection {
   public receiveCandidateFromPeer = async (
     ice: RTCIceCandidate & { id: string }
   ) => {
-    const peerConnection = this.peers.get(ice.id)?.pc
+    const peerConnection = this.connections.get(ice.id)?.pc
     if (!peerConnection) return
     const candidate = new RTCIceCandidate(ice)
     peerConnection.addIceCandidate(candidate)
@@ -273,93 +384,26 @@ export class WebRTCConnection implements Connection {
    * @returns
    */
   public closePeerConnection = (id: Identifier) => {
-    const peer = this.peers.get(id)
-    if (!peer) return
-    peer.dc?.close()
-    peer.pc?.close()
-    this.peers.delete(id)
+    const connection = this.connections.get(id)
+    if (!connection) return
+    connection.close()
+    this.connections.delete(id)
   }
 
-  /**
-   * 新しい RTCPeerConnection を作成する
-   *
-   * @param id 通信相手のID
-   * @param onIceCandidate ICE CANDIDATEのハンドラ
-   * @returns
-   */
-  private createPeerConnection = (
+  private getConnection = (
     id: Identifier,
     onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
   ) => {
-    let pc = new RTCPeerConnection(this.peerConnectionConfig)
+    const cached = this.connections.get(id)
+    if (cached) return cached
 
-    // ICE candidate 取得時のイベントハンドラを登録
-    pc.onicecandidate = async (evt) => {
-      if (evt.candidate) {
-        // 一部の ICE candidate を取得
-        // Trickle ICE では ICE candidate を相手に通知する
-        console.debug(evt.candidate)
-        onIceCandidate(evt)
-        console.log('Collecting ICE candidates')
-      } else {
-        // 全ての ICE candidate の取得完了（空の ICE candidate イベント）
-        // Vanilla ICE では，全てのICE candidate を含んだ SDP を相手に通知する
-        // （SDP は pc.localDescription.sdp で取得できる）
-        // 今回は手動でシグナリングするため textarea に SDP を表示する
-        console.log('Vanilla ICE ready')
-      }
-    }
-
-    pc.onconnectionstatechange = async (_evt) => {
-      switch (pc.connectionState) {
-        case 'connected':
-          console.log('connected')
-          break
-        case 'disconnected':
-        case 'failed':
-          console.log('disconnected')
-          break
-        case 'closed':
-          console.log('closed')
-          break
-      }
-    }
-
-    pc.ondatachannel = (evt) => {
-      console.debug('Data channel created:', evt)
-      this.setupDataChannel(evt.channel)
-      const peer = this.peers.get(id)
-      this.peers.set(id, { ...peer, dc: evt.channel })
-    }
-
-    return pc
+    const connection = new WebRTCConnection({ onIceCandidate })
+    this.connections.set(id, connection)
+    return connection
   }
 
-  /**
-   * Data channel のイベントハンドラを定義する
-   *
-   * @param dc DATA CHANNEL
-   */
-  private setupDataChannel = (dc: RTCDataChannel) => {
-    dc.onerror = function (error) {
-      console.error('Data channel error:', error)
-    }
-    dc.onmessage = function (evt) {
-      console.info('Data channel message:', evt.data)
-      const event = new CustomEvent(CustomEventType.ON_DATA_CHANNEL_MESSAGE, {
-        detail: evt.data
-      })
-      window.dispatchEvent(event)
-    }
-    dc.onopen = function (evt) {
-      console.debug('Data channel opened:', evt)
-    }
-    dc.onclose = function () {
-      console.debug('Data channel closed.')
-    }
-  }
   get sender() {
-    this.senderInstance.connections = this.peers
+    this.senderInstance.connections = this.connections
     return this.senderInstance
   }
   get receiver() {

@@ -1,9 +1,9 @@
 import stringify from 'fast-safe-stringify'
 import * as React from 'react'
 import {
-  Connection,
+  ConnectionManager,
   State as ConnectionState,
-  WebRTCConnection
+  WebRTCConnectionManager
 } from '../connection/Connection'
 import {
   ActionBase,
@@ -46,7 +46,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
   reducer
 }) => {
   const isBooted = React.useRef<boolean>(false)
-  const connection = React.useMemo(() => new WebRTCConnection(), [])
+  const connection = React.useMemo(() => new WebRTCConnectionManager(), [])
 
   const [isGamePlaying, setIsGamePlaying] = React.useState<boolean>(false)
 
@@ -90,7 +90,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
 type Props = {
   initState?: State
   reducer: React.Reducer<any, ActionBase<any, any>>
-  connection: Connection
+  connection: ConnectionManager
 }
 
 const InnerSyncStateProvider: React.FC<React.PropsWithChildren<Props>> = ({

@@ -266,7 +266,7 @@ export class WebRTCConnectionManager implements ConnectionManager {
   public close = (): ConnectionState => {
     this.socket?.emit('SEND_EXIT')
     this.socket?.close()
-    // TODO: closePeerConnections を実行（全コネクションをcloseする）
+    this.closePeerConnections()
     return State.CLOSED
   }
   /**
@@ -383,11 +383,18 @@ export class WebRTCConnectionManager implements ConnectionManager {
    * @param id 切断された相手のID
    * @returns
    */
-  public closePeerConnection = (id: Identifier) => {
+  private closePeerConnection = (id: Identifier) => {
     const connection = this.connections.get(id)
     if (!connection) return
     connection.close()
     this.connections.delete(id)
+  }
+
+  private closePeerConnections = () => {
+    this.connections.forEach((connection) => {
+      connection.close()
+    })
+    this.connections.clear()
   }
 
   private getConnection = (

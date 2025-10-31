@@ -1,35 +1,39 @@
-import { ConnectionState } from '../constants'
 import { CustomEventType, Identifier } from '../types'
-import { Config, Connection } from './Connection'
+import { Connection } from './Connection'
 
-export interface WebRTCConfig extends Config, RTCConfiguration {
+export interface WebRTCConfig {
   onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
+  peerConnectionOptions: RTCConfiguration
+  dataChannelLabel: string
+  dataChannelOptions: RTCDataChannelInit
 }
+
 export class WebRTCConnection implements Connection {
+  private config: WebRTCConfig
+  private defaultConfig: WebRTCConfig = {
+    onIceCandidate: (_evt: RTCPeerConnectionIceEvent): void => {},
+    peerConnectionOptions: {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    },
+    dataChannelLabel: 'test-data-channel',
+    dataChannelOptions: {
+      ordered: true
+    }
+  }
+
   private peerConnection: RTCPeerConnection
   private dataChannel: RTCDataChannel | undefined
-  /**
-   * ICE server URLs
-   * TODO: Configから変更可能にする
-   */
-  private peerConnectionConfig: RTCConfiguration = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+
+  constructor(config: Partial<WebRTCConfig>) {
+    this.config = this.margeDefaultConfig(config)
+    this.peerConnection = this.createPeerConnection()
   }
-  /**
-   * Data channel オプション
-   * TODO: Senderに移動し、Configから変更可能にする
-   */
-  private dataChannelOptions: RTCDataChannelInit = {
-    ordered: false
-  }
-  constructor(config: WebRTCConfig) {
-    this.peerConnection = this.createPeerConnection(config.onIceCandidate)
-  }
-  public close(): ConnectionState {
+
+  public close() {
     this.dataChannel?.close()
     this.peerConnection?.close()
-    return ConnectionState.CLOSED
   }
+
   /**
    * ピア接続を作成しオファーを送信する
    * 通信の最初のシーケンス
@@ -125,6 +129,12 @@ export class WebRTCConnection implements Connection {
     this.peerConnection.addIceCandidate(candidate)
   }
 
+  private margeDefaultConfig = (
+    config: Partial<WebRTCConfig>
+  ): WebRTCConfig => {
+    return { ...this.defaultConfig, ...config }
+  }
+
   /**
    * 新しい RTCPeerConnection を作成する
    *
@@ -132,10 +142,9 @@ export class WebRTCConnection implements Connection {
    * @param onIceCandidate ICE CANDIDATEのハンドラ
    * @returns
    */
-  private createPeerConnection = (
-    onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
-  ) => {
-    let pc = new RTCPeerConnection(this.peerConnectionConfig)
+  private createPeerConnection = () => {
+    const { onIceCandidate, peerConnectionOptions } = this.config
+    let pc = new RTCPeerConnection(peerConnectionOptions)
 
     // ICE candidate 取得時のイベントハンドラを登録
     pc.onicecandidate = async (evt) => {
@@ -178,10 +187,11 @@ export class WebRTCConnection implements Connection {
     return pc
   }
 
-  public createDataChannel = () => {
+  private createDataChannel = () => {
+    const { dataChannelLabel, dataChannelOptions } = this.config
     const dataChannel = this.peerConnection.createDataChannel(
-      'test-data-channel',
-      this.dataChannelOptions
+      dataChannelLabel,
+      dataChannelOptions
     )
     this.setupDataChannel(dataChannel)
     this.dataChannel = dataChannel

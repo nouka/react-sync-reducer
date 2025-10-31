@@ -4,6 +4,5 @@ import { ConnectionState } from '../constants'
 
 export interface Config {}
 export interface Connection {
-  connect(config: Config): ConnectionState
   close(): ConnectionState
 }

@@ -1,5 +1,5 @@
 import { ConnectionState } from '../constants'
-import { CustomEventType } from '../types'
+import { CustomEventType, Identifier } from '../types'
 import { Config, Connection } from './Connection'
 
 export interface WebRTCConfig extends Config, RTCConfiguration {
@@ -25,16 +25,106 @@ export class WebRTCConnection implements Connection {
   constructor(config: WebRTCConfig) {
     this.peerConnection = this.createPeerConnection(config.onIceCandidate)
   }
-  public connect(config: WebRTCConfig): ConnectionState {
-    const { onIceCandidate } = config
-    this.peerConnection = this.createPeerConnection(onIceCandidate)
-    return ConnectionState.PENDING
-  }
   public close(): ConnectionState {
     this.dataChannel?.close()
     this.peerConnection?.close()
     return ConnectionState.CLOSED
   }
+  /**
+   * ピア接続を作成しオファーを送信する
+   * 通信の最初のシーケンス
+   *
+   * @param id 通信相手のID
+   * @param onIceCandidate ICE CANDIDATEのハンドラ
+   * @returns
+   */
+  public makeOfferToPeer = async () => {
+    // Data channel を生成
+    this.createDataChannel()
+
+    try {
+      const sessionDescription = await this.peerConnection.createOffer()
+      console.debug('createOffer() succeeded.')
+      await this.peerConnection.setLocalDescription(sessionDescription)
+      // setLocalDescription() が成功した場合
+      // Trickle ICE ではここで SDP を相手に通知する
+      // Vanilla ICE では ICE candidate が揃うのを待つ
+      console.debug('setLocalDescription() succeeded.')
+      return this.peerConnection
+    } catch (err) {
+      console.error('setLocalDescription() failed.', err)
+    }
+    return
+  }
+
+  /**
+   * オファーを受けてアンサーを作成する
+   * 2番目のシーケンス
+   *
+   * @param sdp オファー（SDP）
+   * @param onIceCandidate ICE CANDIDATEのハンドラ
+   * @returns
+   */
+  public receiveOfferFromPeer = async (
+    sdp: RTCSessionDescription & { id: Identifier }
+  ) => {
+    let offer = new RTCSessionDescription(sdp)
+    try {
+      await this.peerConnection.setRemoteDescription(offer)
+      console.debug('setRemoteDescription() succeeded.')
+    } catch (err) {
+      console.error('setRemoteDescription() failed.', err)
+    }
+    // Answer を生成
+    try {
+      const sessionDescription = await this.peerConnection.createAnswer()
+      console.debug('createAnswer() succeeded.')
+      await this.peerConnection.setLocalDescription(sessionDescription)
+      // setLocalDescription() が成功した場合
+      // Trickle ICE ではここで SDP を相手に通知する
+      // Vanilla ICE では ICE candidate が揃うのを待つ
+      console.debug('setLocalDescription() succeeded.')
+      return this.peerConnection
+    } catch (err) {
+      console.error('setLocalDescription() failed.', err)
+    } finally {
+      console.log('answer created')
+    }
+    return
+  }
+
+  /**
+   * アンサーを受ける
+   * 3番目のシーケンス
+   *
+   * @param sdp アンサー（SDP）
+   * @returns
+   */
+  public receiveAnswerFromPeer = async (
+    sdp: RTCSessionDescription & { id: string }
+  ) => {
+    let answer = new RTCSessionDescription(sdp)
+    try {
+      await this.peerConnection.setRemoteDescription(answer)
+      console.debug('setRemoteDescription() succeeded.')
+    } catch (err) {
+      console.error('setRemoteDescription() failed.', err)
+    }
+  }
+
+  /**
+   * ICE CANDIDATEを受け取り追加する
+   *
+   * @param ice ICE CANDIDATE
+   * @returns
+   */
+  public receiveCandidateFromPeer = async (
+    ice: RTCIceCandidate & { id: string }
+  ) => {
+    const candidate = new RTCIceCandidate(ice)
+    this.peerConnection.addIceCandidate(candidate)
+  }
+
   /**
    * 新しい RTCPeerConnection を作成する
    *

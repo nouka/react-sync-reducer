@@ -42,12 +42,13 @@ export class ConnectionManager {
       // Join Roomを受け付けてオファーを作成し送り返す
       handlers.set(EVENTS.RECEIVE_CALL, async (socket, data) => {
         console.log('RECEIVE_CALL', data)
-        const peerConnection = await this.makeOfferToPeer(data.id, (evt) => {
+        const conn = this.getConnection(data.id, (evt) => {
           socket.emit('SEND_CANDIDATE', {
             target: data.id,
             ice: evt.candidate
           })
         })
+        const peerConnection = await conn.makeOfferToPeer()
         if (!peerConnection) return
         socket.emit('SEND_SDP', {
           target: data.id,
@@ -61,15 +62,14 @@ export class ConnectionManager {
         console.log('RECEIVE_SDP', sdp)
         switch (sdp.type) {
           case 'offer': {
-            const peerConnection = await this.receiveOfferFromPeer(
-              sdp,
-              (evt) => {
-                socket.emit('SEND_CANDIDATE', {
-                  target: sdp.id,
-                  ice: evt.candidate
-                })
-              }
-            )
+            // Peer Connection を生成
+            const conn = this.getConnection(sdp.id, (evt) => {
+              socket.emit('SEND_CANDIDATE', {
+                target: sdp.id,
+                ice: evt.candidate
+              })
+            })
+            const peerConnection = await conn.receiveOfferFromPeer(sdp)
             if (!peerConnection) return
             socket.emit('SEND_SDP', {
               target: sdp.id,
@@ -78,7 +78,9 @@ export class ConnectionManager {
             return
           }
           case 'answer':
-            await this.receiveAnswerFromPeer(sdp)
+            const conn = this.connections.get(sdp.id)
+            if (!conn) return
+            await conn.receiveAnswerFromPeer(sdp)
             socket.emit('START_GAME')
             this.id && (this.hostId = this.id)
             resolve(ConnectionState.CONNECTED)
@@ -90,9 +92,11 @@ export class ConnectionManager {
         }
       })
       // ICE CANDIDATEの受け付け
-      handlers.set(EVENTS.RECEIVE_CANDIDATE, (ice) => {
+      handlers.set(EVENTS.RECEIVE_CANDIDATE, async (ice) => {
         console.log('RECEIVE_CANDIDATE', ice)
-        this.receiveCandidateFromPeer(ice)
+        const conn = this.connections.get(ice.id)
+        if (!conn) return
+        await conn.receiveCandidateFromPeer(ice)
       })
       // ホストのゲーム開始を受けて、クライアントがゲームを起動する処理
       handlers.set(EVENTS.STARTED_GAME, (id) => {
@@ -116,113 +120,6 @@ export class ConnectionManager {
     this.socket?.close()
     this.closePeerConnections()
     return ConnectionState.CLOSED
-  }
-  /**
-   * ピア接続を作成しオファーを送信する
-   * 通信の最初のシーケンス
-   *
-   * @param id 通信相手のID
-   * @param onIceCandidate ICE CANDIDATEのハンドラ
-   * @returns
-   */
-  public makeOfferToPeer = async (
-    id: Identifier,
-    onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
-  ) => {
-    const conn = this.getConnection(id, onIceCandidate)
-
-    // Data channel を生成
-    conn.createDataChannel()
-
-    try {
-      const sessionDescription = await conn.pc.createOffer()
-      console.debug('createOffer() succeeded.')
-      await conn.pc.setLocalDescription(sessionDescription)
-      // setLocalDescription() が成功した場合
-      // Trickle ICE ではここで SDP を相手に通知する
-      // Vanilla ICE では ICE candidate が揃うのを待つ
-      console.debug('setLocalDescription() succeeded.')
-      return conn.pc
-    } catch (err) {
-      console.error('setLocalDescription() failed.', err)
-    }
-    return
-  }
-
-  /**
-   * オファーを受けてアンサーを作成する
-   * 2番目のシーケンス
-   *
-   * @param sdp オファー（SDP）
-   * @param onIceCandidate ICE CANDIDATEのハンドラ
-   * @returns
-   */
-  public receiveOfferFromPeer = async (
-    sdp: RTCSessionDescription & { id: Identifier },
-    onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
-  ) => {
-    // Peer Connection を生成
-    const conn = this.getConnection(sdp.id, onIceCandidate)
-
-    let offer = new RTCSessionDescription(sdp)
-    try {
-      await conn.pc.setRemoteDescription(offer)
-      console.debug('setRemoteDescription() succeeded.')
-    } catch (err) {
-      console.error('setRemoteDescription() failed.', err)
-    }
-    // Answer を生成
-    try {
-      const sessionDescription = await conn.pc.createAnswer()
-      console.debug('createAnswer() succeeded.')
-      await conn.pc.setLocalDescription(sessionDescription)
-      // setLocalDescription() が成功した場合
-      // Trickle ICE ではここで SDP を相手に通知する
-      // Vanilla ICE では ICE candidate が揃うのを待つ
-      console.debug('setLocalDescription() succeeded.')
-      return conn.pc
-    } catch (err) {
-      console.error('setLocalDescription() failed.', err)
-    } finally {
-      console.log('answer created')
-    }
-    return
-  }
-
-  /**
-   * アンサーを受ける
-   * 3番目のシーケンス
-   *
-   * @param sdp アンサー（SDP）
-   * @returns
-   */
-  public receiveAnswerFromPeer = async (
-    sdp: RTCSessionDescription & { id: string }
-  ) => {
-    const peerConnection = this.connections.get(sdp.id)?.pc
-    if (!peerConnection) return
-    let answer = new RTCSessionDescription(sdp)
-    try {
-      await peerConnection.setRemoteDescription(answer)
-      console.debug('setRemoteDescription() succeeded.')
-    } catch (err) {
-      console.error('setRemoteDescription() failed.', err)
-    }
-  }
-
-  /**
-   * ICE CANDIDATEを受け取り追加する
-   *
-   * @param ice ICE CANDIDATE
-   * @returns
-   */
-  public receiveCandidateFromPeer = async (
-    ice: RTCIceCandidate & { id: string }
-  ) => {
-    const peerConnection = this.connections.get(ice.id)?.pc
-    if (!peerConnection) return
-    const candidate = new RTCIceCandidate(ice)
-    peerConnection.addIceCandidate(candidate)
   }
 
   /**

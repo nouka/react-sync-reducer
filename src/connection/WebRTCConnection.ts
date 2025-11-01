@@ -1,7 +1,8 @@
 import { CustomEventType, Identifier } from '../types'
+import { margeDefaultOptions } from '../utils'
 import { Connection } from './Connection'
 
-export interface WebRTCConfig {
+export interface WebRTCOptions {
   onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
   peerConnectionOptions: RTCConfiguration
   dataChannelLabel: string
@@ -9,8 +10,8 @@ export interface WebRTCConfig {
 }
 
 export class WebRTCConnection implements Connection {
-  private config: WebRTCConfig
-  private defaultConfig: WebRTCConfig = {
+  private options: WebRTCOptions
+  private defaultOptions: WebRTCOptions = {
     onIceCandidate: (_evt: RTCPeerConnectionIceEvent): void => {},
     peerConnectionOptions: {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
@@ -24,8 +25,8 @@ export class WebRTCConnection implements Connection {
   private peerConnection: RTCPeerConnection
   private dataChannel: RTCDataChannel | undefined
 
-  constructor(config: Partial<WebRTCConfig>) {
-    this.config = this.margeDefaultConfig(config)
+  constructor(options?: Partial<WebRTCOptions>) {
+    this.options = margeDefaultOptions(this.defaultOptions, options)
     this.peerConnection = this.createPeerConnection()
   }
 
@@ -129,12 +130,6 @@ export class WebRTCConnection implements Connection {
     this.peerConnection.addIceCandidate(candidate)
   }
 
-  private margeDefaultConfig = (
-    config: Partial<WebRTCConfig>
-  ): WebRTCConfig => {
-    return { ...this.defaultConfig, ...config }
-  }
-
   /**
    * 新しい RTCPeerConnection を作成する
    *
@@ -143,7 +138,7 @@ export class WebRTCConnection implements Connection {
    * @returns
    */
   private createPeerConnection = () => {
-    const { onIceCandidate, peerConnectionOptions } = this.config
+    const { onIceCandidate, peerConnectionOptions } = this.options
     let pc = new RTCPeerConnection(peerConnectionOptions)
 
     // ICE candidate 取得時のイベントハンドラを登録
@@ -188,7 +183,7 @@ export class WebRTCConnection implements Connection {
   }
 
   private createDataChannel = () => {
-    const { dataChannelLabel, dataChannelOptions } = this.config
+    const { dataChannelLabel, dataChannelOptions } = this.options
     const dataChannel = this.peerConnection.createDataChannel(
       dataChannelLabel,
       dataChannelOptions

@@ -1,6 +1,6 @@
 import { Reducer } from 'react'
 import { Socket } from 'socket.io-client'
-import { ConnectionManagerConfig } from '../connection-manager/ConnectionManager'
+import { ConnectionManagerOptions } from '../connection-manager/ConnectionManager'
 import { RECEIVE_EVENTS } from '../constants'
 
 export type Identifier = string | number
@@ -30,7 +30,7 @@ export interface ISyncStateContext {
 export type SyncStateProps = {
   initState?: State
   roomName?: string
-  config?: Partial<ConnectionManagerConfig>
+  options?: Partial<ConnectionManagerOptions>
   reducer: Reducer<any, ActionBase<any, any>>
 }
 

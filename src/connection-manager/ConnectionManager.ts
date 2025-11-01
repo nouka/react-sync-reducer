@@ -1,20 +1,21 @@
 import { Socket } from 'socket.io-client'
-import { WebRTCConfig, WebRTCConnection } from '../connection/WebRTCConnection'
+import { WebRTCConnection, WebRTCOptions } from '../connection/WebRTCConnection'
 import { ConnectionState, RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
 import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
 import { WebRTCSender } from '../sender/WebRTCSender'
 import { Identifier, ReceiveEventHandlers } from '../types'
+import { margeDefaultOptions } from '../utils'
 import SocketBuilder, { SocketBuilderOptions } from '../utils/SocketBuilder'
 
-export interface ConnectionManagerConfig {
+export interface ConnectionManagerOptions {
   roomName: string
   socketBuilderOptions?: Partial<SocketBuilderOptions>
-  connectionConfig?: Partial<WebRTCConfig>
+  connectionOptions?: Partial<WebRTCOptions>
 }
 
 export class ConnectionManager {
-  private config: ConnectionManagerConfig
-  private defaultConfig: ConnectionManagerConfig = {
+  private options: ConnectionManagerOptions
+  private defaultOptions: ConnectionManagerOptions = {
     roomName: 'default-room'
   }
 
@@ -27,14 +28,14 @@ export class ConnectionManager {
   private socket: Socket | undefined
   private id: Identifier | undefined
   private hostId: Identifier | undefined
-  constructor(config?: Partial<ConnectionManagerConfig>) {
-    this.config = this.margeDefaultConfig(config)
+  constructor(options?: Partial<ConnectionManagerOptions>) {
+    this.options = margeDefaultOptions(this.defaultOptions, options)
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }
 
   public connect = async (): Promise<ConnectionState> => {
-    const { socketBuilderOptions, roomName } = this.config
+    const { socketBuilderOptions, roomName } = this.options
     return new Promise<ConnectionState>((resolve, reject) => {
       SocketBuilder.registerHandlers(this.makeHandlers(resolve, reject))
         .build(socketBuilderOptions)
@@ -54,12 +55,6 @@ export class ConnectionManager {
     this.socket?.close()
     this.closePeerConnections()
     return ConnectionState.CLOSED
-  }
-
-  private margeDefaultConfig = (
-    config?: Partial<ConnectionManagerConfig>
-  ): ConnectionManagerConfig => {
-    return { ...this.defaultConfig, ...config }
   }
 
   private makeHandlers = (
@@ -195,9 +190,9 @@ export class ConnectionManager {
     const cached = this.connections.get(id)
     if (cached) return cached
 
-    const { connectionConfig } = this.config
+    const { connectionOptions } = this.options
     const connection = new WebRTCConnection({
-      ...connectionConfig,
+      ...connectionOptions,
       onIceCandidate
     })
     this.connections.set(id, connection)

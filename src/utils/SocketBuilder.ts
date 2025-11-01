@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client'
+import { margeDefaultOptions } from '.'
 import { RECEIVE_EVENTS } from '../constants'
 import { Identifier, ReceiveEventHandlers } from '../types'
 
@@ -19,10 +20,8 @@ export default class SocketBuilder {
     return this
   }
 
-  public static async build(
-    options: Partial<SocketBuilderOptions> | undefined
-  ) {
-    const { serverUrl } = this.margeDefaultOptions(options)
+  public static async build(options?: Partial<SocketBuilderOptions>) {
+    const { serverUrl } = margeDefaultOptions(this.defaultOptions, options)
     return new Promise<{ socket: Socket; id: Identifier }>((resolve) => {
       const socket = io(serverUrl)
       this.handlers.forEach(({ type, handler }) => {
@@ -41,14 +40,5 @@ export default class SocketBuilder {
         })
       })
     })
-  }
-
-  private static margeDefaultOptions = (
-    options: Partial<SocketBuilderOptions> | undefined
-  ): SocketBuilderOptions => {
-    return {
-      ...this.defaultOptions,
-      ...options
-    }
   }
 }

@@ -36,13 +36,13 @@ const SyncStateContext = React.createContext<ISyncStateContext>({
 const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
   children,
   initState = {},
-  config,
+  options,
   reducer
 }) => {
   const isBooted = React.useRef<boolean>(false)
   const connection = React.useMemo(
-    () => new ConnectionManager(config),
-    [config]
+    () => new ConnectionManager(options),
+    [options]
   )
 
   const [isGamePlaying, setIsGamePlaying] = React.useState<boolean>(false)

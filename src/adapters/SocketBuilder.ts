@@ -1,7 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 import { Identifier } from '../types'
 
-// TODO: Typeを厳密にチェックできるように
 export const EVENTS = {
   RECEIVE_CONNECTED: 'RECEIVE_CONNECTED',
   LEAVE_USER: 'LEAVE_USER',
@@ -19,10 +18,10 @@ export const EMIT_EVENTS = {
   START_GAME: 'START_GAME'
 } as const
 
-export type EventHandlers =
-  | Map<
-      typeof EVENTS.RECEIVE_CONNECTED,
-      (
+export type EventHandlers = Set<
+  | {
+      type: typeof EVENTS.RECEIVE_CONNECTED
+      handler: (
         socket: Socket,
         resolve: (
           value:
@@ -31,31 +30,37 @@ export type EventHandlers =
         ) => void,
         data: { id: Identifier }
       ) => void
-    >
-  | Map<typeof EVENTS.LEAVE_USER, (data: { id: Identifier }) => void>
-  | Map<
-      typeof EVENTS.RECEIVE_CALL,
-      (socket: Socket, data: { id: Identifier }) => void
-    >
-  | Map<
-      typeof EVENTS.RECEIVE_SDP,
-      (
+    }
+  | {
+      type: typeof EVENTS.LEAVE_USER
+      handler: (data: { id: Identifier }) => void
+    }
+  | {
+      type: typeof EVENTS.RECEIVE_CALL
+      handler: (socket: Socket, data: { id: Identifier }) => void
+    }
+  | {
+      type: typeof EVENTS.RECEIVE_SDP
+      handler: (
         socket: Socket,
-        sdp: {
+        sdp: RTCSessionDescription & {
           id: Identifier
-          type: 'offer' | 'answer'
         }
       ) => void
-    >
-  | Map<
-      typeof EVENTS.RECEIVE_CANDIDATE,
-      (
+    }
+  | {
+      type: typeof EVENTS.RECEIVE_CANDIDATE
+      handler: (
         ice: RTCIceCandidate & {
           id: Identifier
         }
       ) => void
-    >
-  | Map<typeof EVENTS.STARTED_GAME, (id: Identifier) => void>
+    }
+  | {
+      type: typeof EVENTS.STARTED_GAME
+      handler: (id: Identifier) => void
+    }
+>
 
 export interface SocketBuilderOptions {
   serverUrl: string
@@ -64,7 +69,7 @@ export default class SocketBuilder {
   private static defaultOptions: SocketBuilderOptions = {
     serverUrl: `localhost:9030`
   }
-  private static handlers: EventHandlers = new Map()
+  private static handlers: EventHandlers = new Set()
 
   private constructor() {}
 
@@ -79,15 +84,15 @@ export default class SocketBuilder {
     const { serverUrl } = this.margeDefaultOptions(options)
     return new Promise<{ socket: Socket; id: Identifier }>((resolve) => {
       const socket = io(serverUrl)
-      this.handlers.forEach((handler, event) => {
-        socket.on(event, (data) => {
-          if (event === EVENTS.RECEIVE_CONNECTED) {
+      this.handlers.forEach(({ type, handler }) => {
+        socket.on(type, (data) => {
+          if (type === EVENTS.RECEIVE_CONNECTED) {
             return handler(socket, resolve, data)
           }
           if (
-            event === EVENTS.LEAVE_USER ||
-            event === EVENTS.RECEIVE_CANDIDATE ||
-            event === EVENTS.STARTED_GAME
+            type === EVENTS.LEAVE_USER ||
+            type === EVENTS.RECEIVE_CANDIDATE ||
+            type === EVENTS.STARTED_GAME
           ) {
             return handler(data)
           }

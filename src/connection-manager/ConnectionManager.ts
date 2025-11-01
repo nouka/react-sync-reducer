@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io-client'
 import SocketBuilder, {
   EMIT_EVENTS,
+  EventHandlers,
   EVENTS,
   SocketBuilderOptions
 } from '../adapters/SocketBuilder'
@@ -9,8 +10,6 @@ import { ConnectionState } from '../constants'
 import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
 import { WebRTCSender } from '../sender/WebRTCSender'
 import { Identifier } from '../types'
-
-// TODO: interface, 定数の分離
 
 export interface ConnectionManagerConfig {
   roomName: string
@@ -60,85 +59,103 @@ export class ConnectionManager {
     resolve: (value: ConnectionState | PromiseLike<ConnectionState>) => void,
     reject: (reason?: any) => void
   ) => {
-    const handlers = new Map()
+    const handlers: EventHandlers = new Set()
 
     // 接続完了時
-    handlers.set(EVENTS.RECEIVE_CONNECTED, (socket, res, data) => {
-      res({ socket, id: data.id })
+    handlers.add({
+      type: EVENTS.RECEIVE_CONNECTED,
+      handler: (socket, res, data) => {
+        res({ socket, id: data.id })
+      }
     })
 
     // 切断などで退室ユーザーを確認した場合
-    handlers.set(EVENTS.LEAVE_USER, (data) => {
-      console.debug(EVENTS.LEAVE_USER, data)
-      this.closePeerConnection(data.id)
+    handlers.add({
+      type: EVENTS.LEAVE_USER,
+      handler: (data) => {
+        console.debug(EVENTS.LEAVE_USER, data)
+        this.closePeerConnection(data.id)
+      }
     })
 
     // Join Roomを受け付けてオファーを作成し送り返す
-    handlers.set(EVENTS.RECEIVE_CALL, async (socket, data) => {
-      console.debug(EVENTS.RECEIVE_CALL, data)
-      const conn = this.getConnection(data.id, (evt) => {
-        socket.emit(EMIT_EVENTS.SEND_CANDIDATE, {
-          target: data.id,
-          ice: evt.candidate
+    handlers.add({
+      type: EVENTS.RECEIVE_CALL,
+      handler: async (socket, data) => {
+        console.debug(EVENTS.RECEIVE_CALL, data)
+        const conn = this.getConnection(data.id, (evt) => {
+          socket.emit(EMIT_EVENTS.SEND_CANDIDATE, {
+            target: data.id,
+            ice: evt.candidate
+          })
         })
-      })
-      const peerConnection = await conn.makeOfferToPeer()
-      if (!peerConnection) return
-      socket.emit(EMIT_EVENTS.SEND_SDP, {
-        target: data.id,
-        sdp: peerConnection.localDescription
-      })
+        const peerConnection = await conn.makeOfferToPeer()
+        if (!peerConnection) return
+        socket.emit(EMIT_EVENTS.SEND_SDP, {
+          target: data.id,
+          sdp: peerConnection.localDescription
+        })
+      }
     })
 
     // SDPの受け付け
     // オファーの場合はアンサーを作成して送り返す
     // アンサーの場合はremoteDescriptionにセットして終了
-    handlers.set(EVENTS.RECEIVE_SDP, async (socket, sdp) => {
-      console.debug(EVENTS.RECEIVE_SDP, sdp)
-      switch (sdp.type) {
-        case 'offer': {
-          // Peer Connection を生成
-          const conn = this.getConnection(sdp.id, (evt) => {
-            socket.emit(EMIT_EVENTS.SEND_CANDIDATE, {
-              target: sdp.id,
-              ice: evt.candidate
+    handlers.add({
+      type: EVENTS.RECEIVE_SDP,
+      handler: async (socket, sdp) => {
+        console.debug(EVENTS.RECEIVE_SDP, sdp)
+        switch (sdp.type) {
+          case 'offer': {
+            // Peer Connection を生成
+            const conn = this.getConnection(sdp.id, (evt) => {
+              socket.emit(EMIT_EVENTS.SEND_CANDIDATE, {
+                target: sdp.id,
+                ice: evt.candidate
+              })
             })
-          })
-          const peerConnection = await conn.receiveOfferFromPeer(sdp)
-          if (!peerConnection) return
-          socket.emit(EMIT_EVENTS.SEND_SDP, {
-            target: sdp.id,
-            sdp: peerConnection.localDescription
-          })
-          return
+            const peerConnection = await conn.receiveOfferFromPeer(sdp)
+            if (!peerConnection) return
+            socket.emit(EMIT_EVENTS.SEND_SDP, {
+              target: sdp.id,
+              sdp: peerConnection.localDescription
+            })
+            return
+          }
+          case 'answer':
+            const conn = this.connections.get(sdp.id)
+            if (!conn) return
+            await conn.receiveAnswerFromPeer(sdp)
+            socket.emit(EMIT_EVENTS.START_GAME)
+            this.id && (this.hostId = this.id)
+            resolve(ConnectionState.CONNECTED)
+            return
+          default:
+            console.error('unkown sdp...')
+            reject('unkown sdp...')
+            return
         }
-        case 'answer':
-          const conn = this.connections.get(sdp.id)
-          if (!conn) return
-          await conn.receiveAnswerFromPeer(sdp)
-          socket.emit(EMIT_EVENTS.START_GAME)
-          this.id && (this.hostId = this.id)
-          resolve(ConnectionState.CONNECTED)
-          return
-        default:
-          console.error('unkown sdp...')
-          reject('unkown sdp...')
-          return
       }
     })
 
     // ICE CANDIDATEの受け付け
-    handlers.set(EVENTS.RECEIVE_CANDIDATE, async (ice) => {
-      console.debug(EVENTS.RECEIVE_CANDIDATE, ice)
-      const conn = this.connections.get(ice.id)
-      if (!conn) return
-      await conn.receiveCandidateFromPeer(ice)
+    handlers.add({
+      type: EVENTS.RECEIVE_CANDIDATE,
+      handler: async (ice) => {
+        console.debug(EVENTS.RECEIVE_CANDIDATE, ice)
+        const conn = this.connections.get(ice.id)
+        if (!conn) return
+        await conn.receiveCandidateFromPeer(ice)
+      }
     })
 
     // ホストのゲーム開始を受けて、クライアントがゲームを起動する処理
-    handlers.set(EVENTS.STARTED_GAME, (id) => {
-      this.hostId = id
-      resolve(ConnectionState.CONNECTED)
+    handlers.add({
+      type: EVENTS.STARTED_GAME,
+      handler: (id) => {
+        this.hostId = id
+        resolve(ConnectionState.CONNECTED)
+      }
     })
 
     return handlers

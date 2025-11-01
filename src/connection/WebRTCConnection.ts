@@ -105,7 +105,7 @@ export class WebRTCConnection implements Connection {
    * @returns
    */
   public receiveAnswerFromPeer = async (
-    sdp: RTCSessionDescription & { id: string }
+    sdp: RTCSessionDescription & { id: Identifier }
   ) => {
     let answer = new RTCSessionDescription(sdp)
     try {
@@ -123,7 +123,7 @@ export class WebRTCConnection implements Connection {
    * @returns
    */
   public receiveCandidateFromPeer = async (
-    ice: RTCIceCandidate & { id: string }
+    ice: RTCIceCandidate & { id: Identifier }
   ) => {
     const candidate = new RTCIceCandidate(ice)
     this.peerConnection.addIceCandidate(candidate)

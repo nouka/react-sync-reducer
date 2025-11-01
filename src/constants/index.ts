@@ -1,3 +1,5 @@
+import { ConnectionManagerOptions } from '../connection-manager/ConnectionManager'
+
 export const ConnectionState = {
   CLOSED: 'CLOSED',
   CONNECTED: 'CONNECTED',
@@ -23,3 +25,20 @@ export const SEND_EVENTS = {
   SDP: 'SDP',
   COMPLETE: 'COMPLETE'
 } as const
+
+export const DEFAULT_OPTIONS: ConnectionManagerOptions = {
+  roomName: 'default-room',
+  socketBuilderOptions: {
+    serverUrl: `localhost:9030`
+  },
+  connectionOptions: {
+    onIceCandidate: (_evt: RTCPeerConnectionIceEvent): void => {},
+    peerConnectionOptions: {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    },
+    dataChannelLabel: 'default-data-channel',
+    dataChannelOptions: {
+      ordered: true
+    }
+  }
+}

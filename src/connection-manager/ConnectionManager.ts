@@ -1,6 +1,11 @@
 import { Socket } from 'socket.io-client'
 import { WebRTCConnection, WebRTCOptions } from '../connection/WebRTCConnection'
-import { ConnectionState, RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
+import {
+  ConnectionState,
+  DEFAULT_OPTIONS,
+  RECEIVE_EVENTS,
+  SEND_EVENTS
+} from '../constants'
 import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
 import { WebRTCSender } from '../sender/WebRTCSender'
 import { Identifier, ReceiveEventHandlers } from '../types'
@@ -9,15 +14,12 @@ import SocketBuilder, { SocketBuilderOptions } from '../utils/SocketBuilder'
 
 export interface ConnectionManagerOptions {
   roomName: string
-  socketBuilderOptions?: Partial<SocketBuilderOptions>
-  connectionOptions?: Partial<WebRTCOptions>
+  socketBuilderOptions: SocketBuilderOptions
+  connectionOptions: WebRTCOptions
 }
 
 export class ConnectionManager {
   private options: ConnectionManagerOptions
-  private defaultOptions: ConnectionManagerOptions = {
-    roomName: 'default-room'
-  }
 
   /**
    * ピア接続のリスト
@@ -29,7 +31,7 @@ export class ConnectionManager {
   private id: Identifier | undefined
   private hostId: Identifier | undefined
   constructor(options?: Partial<ConnectionManagerOptions>) {
-    this.options = margeDefaultOptions(this.defaultOptions, options)
+    this.options = margeDefaultOptions(DEFAULT_OPTIONS, options)
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }

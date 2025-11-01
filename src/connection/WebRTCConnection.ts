@@ -1,5 +1,4 @@
 import { CustomEventType, Identifier } from '../types'
-import { margeDefaultOptions } from '../utils'
 import { Connection } from './Connection'
 
 export interface WebRTCOptions {
@@ -11,22 +10,12 @@ export interface WebRTCOptions {
 
 export class WebRTCConnection implements Connection {
   private options: WebRTCOptions
-  private defaultOptions: WebRTCOptions = {
-    onIceCandidate: (_evt: RTCPeerConnectionIceEvent): void => {},
-    peerConnectionOptions: {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    },
-    dataChannelLabel: 'default-data-channel',
-    dataChannelOptions: {
-      ordered: true
-    }
-  }
 
   private peerConnection: RTCPeerConnection
   private dataChannel: RTCDataChannel | undefined
 
-  constructor(options?: Partial<WebRTCOptions>) {
-    this.options = margeDefaultOptions(this.defaultOptions, options)
+  constructor(options: WebRTCOptions) {
+    this.options = options
     this.peerConnection = this.createPeerConnection()
   }
 
@@ -161,14 +150,14 @@ export class WebRTCConnection implements Connection {
     pc.onconnectionstatechange = async (_evt) => {
       switch (pc.connectionState) {
         case 'connected':
-          console.log('connected')
+          console.debug('connected')
           break
         case 'disconnected':
         case 'failed':
-          console.log('disconnected')
+          console.debug('disconnected')
           break
         case 'closed':
-          console.log('closed')
+          console.debug('closed')
           break
       }
     }

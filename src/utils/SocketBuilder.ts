@@ -1,5 +1,4 @@
 import { io, Socket } from 'socket.io-client'
-import { margeDefaultOptions } from '.'
 import { RECEIVE_EVENTS } from '../constants'
 import { Identifier, ReceiveEventHandlers } from '../types'
 
@@ -8,9 +7,6 @@ export interface SocketBuilderOptions {
 }
 
 export default class SocketBuilder {
-  private static defaultOptions: SocketBuilderOptions = {
-    serverUrl: `localhost:9030`
-  }
   private static handlers: ReceiveEventHandlers = new Set()
 
   private constructor() {}
@@ -20,8 +16,8 @@ export default class SocketBuilder {
     return this
   }
 
-  public static async build(options?: Partial<SocketBuilderOptions>) {
-    const { serverUrl } = margeDefaultOptions(this.defaultOptions, options)
+  public static async build(options: SocketBuilderOptions) {
+    const { serverUrl } = options
     return new Promise<{ socket: Socket; id: Identifier }>((resolve) => {
       const socket = io(serverUrl)
       this.handlers.forEach(({ type, handler }) => {

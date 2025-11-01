@@ -1,5 +1,6 @@
 import stringify from 'fast-safe-stringify'
 import * as React from 'react'
+import { ConnectionManager } from '../connection-manager/ConnectionManager'
 import { ConnectionState } from '../constants'
 import {
   ActionBase,
@@ -9,7 +10,6 @@ import {
   SyncStateProps
 } from '../types'
 import { handleAction, isDeliveAction, isRequestAction } from '../utils/'
-import { ConnectionManager } from '../connection-manager/ConnectionManager'
 
 /**
  * State を複数名で同期するためのコンテキスト

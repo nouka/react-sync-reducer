@@ -1,15 +1,15 @@
 import { Socket } from 'socket.io-client'
-import SocketBuilder, {
-  EMIT_EVENTS,
-  EventHandlers,
-  EVENTS,
-  SocketBuilderOptions
-} from '../adapters/SocketBuilder'
 import { WebRTCConnection } from '../connection/WebRTCConnection'
 import { ConnectionState } from '../constants'
 import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
 import { WebRTCSender } from '../sender/WebRTCSender'
 import { Identifier } from '../types'
+import SocketBuilder, {
+  EMIT_EVENTS,
+  EventHandlers,
+  EVENTS,
+  SocketBuilderOptions
+} from '../utils/SocketBuilder'
 
 export interface ConnectionManagerConfig {
   roomName: string

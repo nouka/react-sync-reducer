@@ -1,15 +1,10 @@
 import { Socket } from 'socket.io-client'
 import { WebRTCConnection } from '../connection/WebRTCConnection'
-import { ConnectionState } from '../constants'
+import { ConnectionState, RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
 import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
 import { WebRTCSender } from '../sender/WebRTCSender'
-import { Identifier } from '../types'
-import SocketBuilder, {
-  EMIT_EVENTS,
-  EventHandlers,
-  EVENTS,
-  SocketBuilderOptions
-} from '../utils/SocketBuilder'
+import { Identifier, ReceiveEventHandlers } from '../types'
+import SocketBuilder, { SocketBuilderOptions } from '../utils/SocketBuilder'
 
 export interface ConnectionManagerConfig {
   roomName: string
@@ -43,13 +38,13 @@ export class ConnectionManager {
           console.debug('connected to signaling server. my id=', this.id)
 
           // 自動的にJOIN
-          socket.emit(EMIT_EVENTS.SEND_ENTER, config.roomName)
+          socket.emit(SEND_EVENTS.ENTER, config.roomName)
         })
     })
   }
 
   public close = (): ConnectionState => {
-    this.socket?.emit(EMIT_EVENTS.SEND_EXIT)
+    this.socket?.emit(SEND_EVENTS.EXIT)
     this.socket?.close()
     this.closePeerConnections()
     return ConnectionState.CLOSED
@@ -59,11 +54,11 @@ export class ConnectionManager {
     resolve: (value: ConnectionState | PromiseLike<ConnectionState>) => void,
     reject: (reason?: any) => void
   ) => {
-    const handlers: EventHandlers = new Set()
+    const handlers: ReceiveEventHandlers = new Set()
 
     // 接続完了時
     handlers.add({
-      type: EVENTS.RECEIVE_CONNECTED,
+      type: RECEIVE_EVENTS.CONNECTED,
       handler: (socket, res, data) => {
         res({ socket, id: data.id })
       }
@@ -71,27 +66,27 @@ export class ConnectionManager {
 
     // 切断などで退室ユーザーを確認した場合
     handlers.add({
-      type: EVENTS.LEAVE_USER,
+      type: RECEIVE_EVENTS.DISCONNECTED,
       handler: (data) => {
-        console.debug(EVENTS.LEAVE_USER, data)
+        console.debug(RECEIVE_EVENTS.DISCONNECTED, data)
         this.closePeerConnection(data.id)
       }
     })
 
     // Join Roomを受け付けてオファーを作成し送り返す
     handlers.add({
-      type: EVENTS.RECEIVE_CALL,
+      type: RECEIVE_EVENTS.CALL,
       handler: async (socket, data) => {
-        console.debug(EVENTS.RECEIVE_CALL, data)
+        console.debug(RECEIVE_EVENTS.CALL, data)
         const conn = this.getConnection(data.id, (evt) => {
-          socket.emit(EMIT_EVENTS.SEND_CANDIDATE, {
+          socket.emit(SEND_EVENTS.CANDIDATE, {
             target: data.id,
             ice: evt.candidate
           })
         })
         const peerConnection = await conn.makeOfferToPeer()
         if (!peerConnection) return
-        socket.emit(EMIT_EVENTS.SEND_SDP, {
+        socket.emit(SEND_EVENTS.SDP, {
           target: data.id,
           sdp: peerConnection.localDescription
         })
@@ -102,21 +97,21 @@ export class ConnectionManager {
     // オファーの場合はアンサーを作成して送り返す
     // アンサーの場合はremoteDescriptionにセットして終了
     handlers.add({
-      type: EVENTS.RECEIVE_SDP,
+      type: RECEIVE_EVENTS.SDP,
       handler: async (socket, sdp) => {
-        console.debug(EVENTS.RECEIVE_SDP, sdp)
+        console.debug(RECEIVE_EVENTS.SDP, sdp)
         switch (sdp.type) {
           case 'offer': {
             // Peer Connection を生成
             const conn = this.getConnection(sdp.id, (evt) => {
-              socket.emit(EMIT_EVENTS.SEND_CANDIDATE, {
+              socket.emit(SEND_EVENTS.CANDIDATE, {
                 target: sdp.id,
                 ice: evt.candidate
               })
             })
             const peerConnection = await conn.receiveOfferFromPeer(sdp)
             if (!peerConnection) return
-            socket.emit(EMIT_EVENTS.SEND_SDP, {
+            socket.emit(SEND_EVENTS.SDP, {
               target: sdp.id,
               sdp: peerConnection.localDescription
             })
@@ -126,7 +121,7 @@ export class ConnectionManager {
             const conn = this.connections.get(sdp.id)
             if (!conn) return
             await conn.receiveAnswerFromPeer(sdp)
-            socket.emit(EMIT_EVENTS.START_GAME)
+            socket.emit(SEND_EVENTS.COMPLETE)
             this.id && (this.hostId = this.id)
             resolve(ConnectionState.CONNECTED)
             return
@@ -140,9 +135,9 @@ export class ConnectionManager {
 
     // ICE CANDIDATEの受け付け
     handlers.add({
-      type: EVENTS.RECEIVE_CANDIDATE,
+      type: RECEIVE_EVENTS.CANDIDATE,
       handler: async (ice) => {
-        console.debug(EVENTS.RECEIVE_CANDIDATE, ice)
+        console.debug(RECEIVE_EVENTS.CANDIDATE, ice)
         const conn = this.connections.get(ice.id)
         if (!conn) return
         await conn.receiveCandidateFromPeer(ice)
@@ -151,7 +146,7 @@ export class ConnectionManager {
 
     // ホストのゲーム開始を受けて、クライアントがゲームを起動する処理
     handlers.add({
-      type: EVENTS.STARTED_GAME,
+      type: RECEIVE_EVENTS.COMPLETED,
       handler: (id) => {
         this.hostId = id
         resolve(ConnectionState.CONNECTED)

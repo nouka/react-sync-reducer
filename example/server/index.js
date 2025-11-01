@@ -35,30 +35,30 @@ io.on('connection', (socket) => {
   /**
    * 接続完了イベント
    */
-  socket.emit('RECEIVE_CONNECTED', { id: socket.id })
+  socket.emit('CONNECTED', { id: socket.id })
 
   /**
    * 切断イベントの登録
    */
   socket.on('disconnect', () => {
     console.log('id=' + socket.id + ' exit room:' + socket.roomname)
-    socket.broadcast.to(socket.roomname).emit('LEAVE_USER', { id: socket.id })
+    socket.broadcast.to(socket.roomname).emit('DISCONNECTED', { id: socket.id })
   })
 
   /**
    * 入室イベント
    */
-  socket.on('SEND_ENTER', function (roomname) {
+  socket.on('ENTER', function (roomname) {
     socket.join(roomname)
     console.log('id=' + socket.id + ' enter room:' + roomname)
     socket.roomname = roomname
-    socket.broadcast.to(socket.roomname).emit('RECEIVE_CALL', { id: socket.id })
+    socket.broadcast.to(socket.roomname).emit('CALL', { id: socket.id })
   })
 
   /**
    * 退室イベント
    */
-  socket.on('SEND_EXIT', function () {
+  socket.on('EXIT', function () {
     socket.leave(socket.roomname)
     socket.broadcast.to(socket.roomname).emit('LEAVE_USER', { id: socket.id })
   })
@@ -66,22 +66,22 @@ io.on('connection', (socket) => {
   /**
    * SDPの交換
    */
-  socket.on('SEND_SDP', function (data) {
+  socket.on('SDP', function (data) {
     data.sdp.id = socket.id
     if (data.target) {
-      socket.to(data.target).emit('RECEIVE_SDP', data.sdp)
+      socket.to(data.target).emit('SDP', data.sdp)
     } else {
-      socket.broadcast.to(socket.roomname).emit('RECEIVE_SDP', data.sdp)
+      socket.broadcast.to(socket.roomname).emit('SDP', data.sdp)
     }
   })
 
   /**
    * ICE CANDIDATEの交換
    */
-  socket.on('SEND_CANDIDATE', function (data) {
+  socket.on('CANDIDATE', function (data) {
     if (data.target) {
       data.ice.id = socket.id
-      socket.to(data.target).emit('RECEIVE_CANDIDATE', data.ice)
+      socket.to(data.target).emit('CANDIDATE', data.ice)
     } else {
       console.log('candidate need target id')
     }
@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
   /**
    * GAMEの実行
    */
-  socket.on('START_GAME', function () {
-    socket.broadcast.to(socket.roomname).emit('STARTED_GAME', socket.id)
+  socket.on('COMPLETE', function () {
+    socket.broadcast.to(socket.roomname).emit('COMPLETED', socket.id)
   })
 })

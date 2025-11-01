@@ -128,9 +128,9 @@ export class ConnectionManager {
 
     // Join Roomを受け付けてオファーを作成し送り返す
     handlers.add({
-      type: RECEIVE_EVENTS.CALL,
+      type: RECEIVE_EVENTS.JOINED,
       handler: async (socket, data) => {
-        console.debug(RECEIVE_EVENTS.CALL, data)
+        console.debug(RECEIVE_EVENTS.JOINED, data)
         const conn = this.getConnection(data.id, (evt) => {
           socket.emit(SEND_EVENTS.CANDIDATE, {
             target: data.id,

@@ -52,7 +52,7 @@ io.on('connection', (socket) => {
     socket.join(roomname)
     console.log('id=' + socket.id + ' enter room:' + roomname)
     socket.roomname = roomname
-    socket.broadcast.to(socket.roomname).emit('CALL', { id: socket.id })
+    socket.broadcast.to(socket.roomname).emit('JOINED', { id: socket.id })
   })
 
   /**

@@ -56,7 +56,7 @@ export type ReceiveEventHandlers = Set<
       handler: (data: { id: Identifier }) => void
     }
   | {
-      type: typeof RECEIVE_EVENTS.CALL
+      type: typeof RECEIVE_EVENTS.JOINED
       handler: (socket: Socket, data: { id: Identifier }) => void
     }
   | {

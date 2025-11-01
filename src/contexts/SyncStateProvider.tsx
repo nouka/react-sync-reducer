@@ -28,9 +28,6 @@ const SyncStateContext = React.createContext<ISyncStateContext>({
  * 状態データをデータチャンネル経由で同期するためのプロバイダ
  * ホスト/クライアント型のパターンで P2P 通信で同期します。
  *
- * initState ........ 初期状態データ
- * reducer .......... 状態データをハンドリングする関数、useReducer を使って state を書き換えます。
- *
  * @returns
  */
 const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
@@ -52,7 +49,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
     isBooted.current = true
 
     const connectionState = await connection.connect()
-    console.log('connectionState=', connectionState)
+    console.debug('connectionState=', connectionState)
     if (connectionState === ConnectionState.CONNECTED) {
       setIsGamePlaying(true)
     }

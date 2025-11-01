@@ -18,24 +18,56 @@ export interface ConnectionManagerOptions {
   connectionOptions: WebRTCOptions
 }
 
+/**
+ * ピア接続を管理するクラス
+ */
 export class ConnectionManager {
+  /**
+   * オプション
+   */
   private options: ConnectionManagerOptions
 
   /**
    * ピア接続のリスト
    */
   private connections: Map<Identifier, WebRTCConnection> = new Map()
+
+  /**
+   * 送信インスタンス
+   */
   private senderInstance: WebRTCSender
+
+  /**
+   * 受信インスタンス
+   */
   private receiverInstance: WebRTCReceiver
+
+  /**
+   * Socket.IOのソケット
+   */
   private socket: Socket | undefined
+
+  /**
+   * 自分のID
+   */
   private id: Identifier | undefined
+
+  /**
+   * ホストのID
+   */
   private hostId: Identifier | undefined
+
   constructor(options?: Partial<ConnectionManagerOptions>) {
     this.options = margeDefaultOptions(DEFAULT_OPTIONS, options)
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }
 
+  /**
+   * シグナリングサーバーに接続する
+   *
+   * @returns
+   */
   public connect = async (): Promise<ConnectionState> => {
     const { socketBuilderOptions, roomName } = this.options
     return new Promise<ConnectionState>((resolve, reject) => {
@@ -52,6 +84,11 @@ export class ConnectionManager {
     })
   }
 
+  /**
+   * 接続を閉じる
+   *
+   * @returns
+   */
   public close = (): ConnectionState => {
     this.socket?.emit(SEND_EVENTS.EXIT)
     this.socket?.close()
@@ -59,6 +96,13 @@ export class ConnectionManager {
     return ConnectionState.CLOSED
   }
 
+  /**
+   * シグナリングサーバーのイベントハンドラを作成する
+   *
+   * @param resolve 正常終了のコールバック
+   * @param reject 異常終了のコールバック
+   * @returns
+   */
   private makeHandlers = (
     resolve: (value: ConnectionState | PromiseLike<ConnectionState>) => void,
     reject: (reason?: any) => void
@@ -178,6 +222,11 @@ export class ConnectionManager {
     this.connections.delete(id)
   }
 
+  /**
+   * 全ピア接続のClose
+   *
+   * @returns
+   */
   private closePeerConnections = () => {
     this.connections.forEach((connection) => {
       connection.close()
@@ -185,6 +234,13 @@ export class ConnectionManager {
     this.connections.clear()
   }
 
+  /**
+   * 接続の取得または新規作成
+   *
+   * @param id 接続先のID
+   * @param onIceCandidate ICE candidate イベントハンドラ
+   * @returns
+   */
   private getConnection = (
     id: Identifier,
     onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void

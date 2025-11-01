@@ -6,16 +6,32 @@ export interface SocketBuilderOptions {
   serverUrl: string
 }
 
+/**
+ * ソケット通信のビルダー
+ */
 export default class SocketBuilder {
+  /**
+   * ソケット通信のハンドラ
+   */
   private static handlers: ReceiveEventHandlers = new Set()
 
-  private constructor() {}
-
+  /**
+   * ハンドラの登録処理
+   *
+   * @param handlers ハンドラ
+   * @returns
+   */
   public static registerHandlers = (handlers: ReceiveEventHandlers) => {
     this.handlers = handlers
     return this
   }
 
+  /**
+   * ソケット通信の開始処理
+   *
+   * @param options オプション
+   * @returns
+   */
   public static async build(options: SocketBuilderOptions) {
     const { serverUrl } = options
     return new Promise<{ socket: Socket; id: Identifier }>((resolve) => {

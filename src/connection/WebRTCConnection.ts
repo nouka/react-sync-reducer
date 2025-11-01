@@ -8,6 +8,9 @@ export interface WebRTCOptions {
   dataChannelOptions: RTCDataChannelInit
 }
 
+/**
+ * WebRTCによるピア接続を管理するクラス
+ */
 export class WebRTCConnection implements Connection {
   private options: WebRTCOptions
 
@@ -19,18 +22,17 @@ export class WebRTCConnection implements Connection {
     this.peerConnection = this.createPeerConnection()
   }
 
+  /**
+   * ピア接続を閉じる
+   */
   public close() {
     this.dataChannel?.close()
-    this.peerConnection?.close()
+    this.peerConnection.close()
   }
 
   /**
    * ピア接続を作成しオファーを送信する
    * 通信の最初のシーケンス
-   *
-   * @param id 通信相手のID
-   * @param onIceCandidate ICE CANDIDATEのハンドラ
-   * @returns
    */
   public makeOfferToPeer = async () => {
     // Data channel を生成
@@ -56,7 +58,6 @@ export class WebRTCConnection implements Connection {
    * 2番目のシーケンス
    *
    * @param sdp オファー（SDP）
-   * @param onIceCandidate ICE CANDIDATEのハンドラ
    * @returns
    */
   public receiveOfferFromPeer = async (
@@ -122,8 +123,6 @@ export class WebRTCConnection implements Connection {
   /**
    * 新しい RTCPeerConnection を作成する
    *
-   * @param id 通信相手のID
-   * @param onIceCandidate ICE CANDIDATEのハンドラ
    * @returns
    */
   private createPeerConnection = () => {
@@ -171,6 +170,9 @@ export class WebRTCConnection implements Connection {
     return pc
   }
 
+  /**
+   * Data channel を作成する
+   */
   private createDataChannel = () => {
     const { dataChannelLabel, dataChannelOptions } = this.options
     const dataChannel = this.peerConnection.createDataChannel(
@@ -184,7 +186,7 @@ export class WebRTCConnection implements Connection {
   /**
    * Data channel のイベントハンドラを定義する
    *
-   * @param dc DATA CHANNEL
+   * @param dc Data channel
    */
   private setupDataChannel = (dc: RTCDataChannel) => {
     dc.onerror = function (error) {
@@ -204,6 +206,7 @@ export class WebRTCConnection implements Connection {
       console.debug('Data channel closed.')
     }
   }
+
   get pc() {
     return this.peerConnection
   }

@@ -15,7 +15,7 @@ export class WebRTCConnection implements Connection {
     peerConnectionOptions: {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     },
-    dataChannelLabel: 'test-data-channel',
+    dataChannelLabel: 'default-data-channel',
     dataChannelOptions: {
       ordered: true
     }

@@ -14,6 +14,10 @@ export interface ConnectionManagerConfig {
 
 export class ConnectionManager {
   private config: ConnectionManagerConfig
+  private defaultConfig: ConnectionManagerConfig = {
+    roomName: 'default-room'
+  }
+
   /**
    * ピア接続のリスト
    */
@@ -23,8 +27,8 @@ export class ConnectionManager {
   private socket: Socket | undefined
   private id: Identifier | undefined
   private hostId: Identifier | undefined
-  constructor(config: ConnectionManagerConfig) {
-    this.config = config
+  constructor(config?: Partial<ConnectionManagerConfig>) {
+    this.config = this.margeDefaultConfig(config)
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }
@@ -50,6 +54,12 @@ export class ConnectionManager {
     this.socket?.close()
     this.closePeerConnections()
     return ConnectionState.CLOSED
+  }
+
+  private margeDefaultConfig = (
+    config?: Partial<ConnectionManagerConfig>
+  ): ConnectionManagerConfig => {
+    return { ...this.defaultConfig, ...config }
   }
 
   private makeHandlers = (

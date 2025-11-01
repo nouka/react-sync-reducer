@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client'
-import { WebRTCConnection } from '../connection/WebRTCConnection'
+import { WebRTCConfig, WebRTCConnection } from '../connection/WebRTCConnection'
 import { ConnectionState, RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
 import { WebRTCReceiver } from '../receiver/WebRTCReceiver'
 import { WebRTCSender } from '../sender/WebRTCSender'
@@ -8,10 +8,12 @@ import SocketBuilder, { SocketBuilderOptions } from '../utils/SocketBuilder'
 
 export interface ConnectionManagerConfig {
   roomName: string
-  socketBuilderOptions?: SocketBuilderOptions
+  socketBuilderOptions?: Partial<SocketBuilderOptions>
+  connectionConfig?: Partial<WebRTCConfig>
 }
 
 export class ConnectionManager {
+  private config: ConnectionManagerConfig
   /**
    * ピア接続のリスト
    */
@@ -21,24 +23,24 @@ export class ConnectionManager {
   private socket: Socket | undefined
   private id: Identifier | undefined
   private hostId: Identifier | undefined
-  constructor() {
+  constructor(config: ConnectionManagerConfig) {
+    this.config = config
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
   }
 
-  public connect = async (
-    config: ConnectionManagerConfig
-  ): Promise<ConnectionState> => {
+  public connect = async (): Promise<ConnectionState> => {
+    const { socketBuilderOptions, roomName } = this.config
     return new Promise<ConnectionState>((resolve, reject) => {
       SocketBuilder.registerHandlers(this.makeHandlers(resolve, reject))
-        .build(config.socketBuilderOptions)
+        .build(socketBuilderOptions)
         .then(({ socket, id }) => {
           this.socket = socket
           this.id = id
           console.debug('connected to signaling server. my id=', this.id)
 
           // 自動的にJOIN
-          socket.emit(SEND_EVENTS.ENTER, config.roomName)
+          socket.emit(SEND_EVENTS.ENTER, roomName)
         })
     })
   }
@@ -183,7 +185,11 @@ export class ConnectionManager {
     const cached = this.connections.get(id)
     if (cached) return cached
 
-    const connection = new WebRTCConnection({ onIceCandidate })
+    const { connectionConfig } = this.config
+    const connection = new WebRTCConnection({
+      ...connectionConfig,
+      onIceCandidate
+    })
     this.connections.set(id, connection)
     return connection
   }

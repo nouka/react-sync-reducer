@@ -43,7 +43,10 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
   reducer
 }) => {
   const isBooted = React.useRef<boolean>(false)
-  const connection = React.useMemo(() => new ConnectionManager(), [])
+  const connection = React.useMemo(
+    () => new ConnectionManager({ roomName }),
+    [roomName]
+  )
 
   const [isGamePlaying, setIsGamePlaying] = React.useState<boolean>(false)
 
@@ -51,7 +54,7 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
     if (isBooted.current) return
     isBooted.current = true
 
-    const connectionState = await connection.connect({ roomName })
+    const connectionState = await connection.connect()
     console.log('connectionState=', connectionState)
     if (connectionState === ConnectionState.CONNECTED) {
       setIsGamePlaying(true)

@@ -75,7 +75,7 @@ export const handleAction =
  * @returns 登録解除関数
  */
 export const customEventListener = <T>(
-  type: CustomEventType,
+  type: keyof typeof CustomEventType,
   handler: Handler<T>
 ) => {
   const listener = (e: Event) => handler((e as CustomEvent).detail)

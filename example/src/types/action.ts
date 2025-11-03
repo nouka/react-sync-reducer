@@ -3,20 +3,20 @@ import type { ActionBase } from 'react-sync-reducer'
 /**
  * アクションタイプ
  */
-export enum ActionType {
-  ENTRY = 'example/ENTRY',
-  EXIT = 'example/EXIT'
-}
+export const ActionType = {
+  ENTRY: 'example/ENTRY',
+  EXIT: 'example/EXIT'
+} as const
 
 /**
  * アクション
  */
 export type EntryAction = ActionBase<
-  ActionType.ENTRY,
+  typeof ActionType.ENTRY,
   {
     someActionParameter: string
   }
 >
-export type ExitAction = ActionBase<ActionType.EXIT, undefined>
+export type ExitAction = ActionBase<typeof ActionType.EXIT>
 
 export type Action = EntryAction | ExitAction

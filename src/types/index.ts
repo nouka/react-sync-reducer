@@ -7,20 +7,20 @@ import { RECEIVE_EVENTS } from '../constants'
 
 export type Identifier = string | number
 
-export type ActionBase<T, P> = {
+export type ActionBase<T, P = undefined> = {
   type: T
   payload: P
 }
 
 export type Handler<T> = (value: T) => void
 
-export enum ActionType {
-  DELIVE = 'react-sync-state/DELIVE',
-  REQUEST = 'react-sync-state/REQUEST'
-}
+export const ActionType = {
+  DELIVE: 'react-sync-state/DELIVE',
+  REQUEST: 'react-sync-state/REQUEST'
+} as const
 
-export type DeliveAction<T> = ActionBase<ActionType.DELIVE, T>
-export type RequestAction<T> = ActionBase<ActionType.REQUEST, T>
+export type DeliveAction<T> = ActionBase<typeof ActionType.DELIVE, T>
+export type RequestAction<T> = ActionBase<typeof ActionType.REQUEST, T>
 
 export type State = { [key: string]: any } & { revision?: number }
 
@@ -32,9 +32,9 @@ export type SyncStateProps = {
   options?: Partial<ConnectionManagerOptions>
 }
 
-export enum CustomEventType {
-  ON_DATA_CHANNEL_MESSAGE = 'ON_DATA_CHANNEL_MESSAGE'
-}
+export const CustomEventType = {
+  ON_DATA_CHANNEL_MESSAGE: 'ON_DATA_CHANNEL_MESSAGE'
+} as const
 
 export type ReceiveEventHandlers = Set<
   | {

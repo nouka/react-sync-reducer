@@ -83,7 +83,7 @@ export class WebRTCConnection implements Connection {
     } catch (err) {
       console.error('setLocalDescription() failed.', err)
     } finally {
-      console.log('answer created')
+      console.debug('answer created')
     }
     return
   }
@@ -136,13 +136,13 @@ export class WebRTCConnection implements Connection {
         // Trickle ICE では ICE candidate を相手に通知する
         console.debug(evt.candidate)
         onIceCandidate(evt)
-        console.log('Collecting ICE candidates')
+        console.debug('Collecting ICE candidates')
       } else {
         // 全ての ICE candidate の取得完了（空の ICE candidate イベント）
         // Vanilla ICE では，全てのICE candidate を含んだ SDP を相手に通知する
         // （SDP は pc.localDescription.sdp で取得できる）
         // 今回は手動でシグナリングするため textarea に SDP を表示する
-        console.log('Vanilla ICE ready')
+        console.debug('Vanilla ICE ready')
       }
     }
 

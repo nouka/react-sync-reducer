@@ -1,48 +1,26 @@
-import stringify from 'fast-safe-stringify'
 import * as React from 'react'
 import { ConnectionManager } from '../connection-manager/ConnectionManager'
 import { ConnectionState } from '../constants'
-import {
-  ActionBase,
-  ActionType,
-  ISyncStateContext,
-  State,
-  SyncStateProps
-} from '../types'
-import { handleAction, isDeliveAction, isRequestAction } from '../utils/'
+import { ISyncStateContext, SyncStateProps } from '../types'
 
 /**
- * State を複数名で同期するためのコンテキスト
- *
- * state ............ 状態データ
- * dispatchAction ... アクションのディスパッチャ
+ * Connection を共有するためのコンテキスト
  */
-const SyncStateContext = React.createContext<ISyncStateContext>({
-  state: {},
-  dispatchAction: (_action: ActionBase<any, any>) => {
-    throw new Error('Function not implemented.')
-  }
-})
+export const SyncStateContext = React.createContext({} as ISyncStateContext)
 
 /**
- * 状態データをデータチャンネル経由で同期するためのプロバイダ
- * ホスト/クライアント型のパターンで P2P 通信で同期します。
- *
- * @returns
+ * Connection を提供するプロバイダ
  */
-const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
-  children,
-  initState = {},
-  options,
-  reducer
-}) => {
+export const SyncStateProvider: React.FC<
+  React.PropsWithChildren<SyncStateProps>
+> = ({ children, options }) => {
   const isBooted = React.useRef<boolean>(false)
   const connection = React.useMemo(
     () => new ConnectionManager(options),
     [options]
   )
 
-  const [isGamePlaying, setIsGamePlaying] = React.useState<boolean>(false)
+  const [isConnected, setIsConnected] = React.useState<boolean>(false)
 
   const bootstrap = React.useCallback(async () => {
     if (isBooted.current) return
@@ -51,12 +29,12 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
     const connectionState = await connection.connect()
     console.debug('connectionState=', connectionState)
     if (connectionState === ConnectionState.CONNECTED) {
-      setIsGamePlaying(true)
+      setIsConnected(true)
     }
 
     return () => {
       connection.close()
-      setIsGamePlaying(false)
+      setIsConnected(false)
       isBooted.current = false
     }
   }, [])
@@ -68,143 +46,11 @@ const SyncStateProvider: React.FC<React.PropsWithChildren<SyncStateProps>> = ({
     })()
   }, [bootstrap])
 
-  if (!isGamePlaying) return null
+  if (!isConnected) return null
 
   return (
-    <InnerSyncStateProvider
-      initState={initState}
-      reducer={reducer}
-      connection={connection}
-    >
-      {children}
-    </InnerSyncStateProvider>
-  )
-}
-
-type Props = {
-  initState?: State
-  reducer: React.Reducer<any, ActionBase<any, any>>
-  connection: ConnectionManager
-}
-
-const InnerSyncStateProvider: React.FC<React.PropsWithChildren<Props>> = ({
-  children,
-  initState = {},
-  reducer,
-  connection
-}) => {
-  /**
-   * Reducer
-   */
-  const [state, dispatch] = React.useReducer(handleAction(reducer), initState)
-
-  /**
-   * 状態データのリビジョン番号、比較に用います
-   */
-  const revision = React.useRef<number>(0)
-
-  /**
-   * データチャンネルのハンドラ登録
-   */
-  React.useEffect(() => {
-    const handler = connection.isHost ? hostHandler : clientHandler
-    const unsubscribe = connection.receiver.onMessage(handler)
-    return () => unsubscribe()
-  }, [connection.isHost, connection.receiver])
-
-  /**
-   * 状態データ変更時の処理
-   * State のリビジョン番号を Ref に保存し、比較に利用します。
-   * ホストの場合は DELIVE イベントを発行し、他のユーザーに State を配布します。
-   */
-  React.useEffect(() => {
-    console.debug('sync state:', state)
-    revision.current = state.revision ?? 0
-    connection.isHost &&
-      connection.sender.broadcast(
-        stringify({
-          type: ActionType.DELIVE,
-          payload: state
-        })
-      )
-  }, [state])
-
-  /**
-   * アクションのディスパッチャ
-   * ホストは単に自分自身の State を変更します。
-   * クライアントはデータチャンネル経由でアクションをリクエストします。
-   *
-   * @param action アクション
-   */
-  const dispatchAction = (action: ActionBase<any, any>) => {
-    connection.isHost
-      ? dispatch(action)
-      : connection.host &&
-        connection.sender.sendTo(
-          connection.host,
-          stringify({
-            type: ActionType.REQUEST,
-            payload: action
-          })
-        )
-  }
-
-  /**
-   * データチャンネルのメッセージハンドラ
-   * ホストがクライアントから REQUEST アクションを受け取った場合は、dispatch を実行し State を更新します。
-   *
-   * @param message メッセージ
-   *
-   * @returns
-   */
-  const hostHandler = async (message: string) => {
-    const action = JSON.parse(message)
-
-    // REQUEST
-    if (isRequestAction(action)) {
-      dispatch(action.payload)
-      return
-    }
-  }
-
-  /**
-   * データチャンネルのメッセージハンドラ
-   * クライアントがホストから DELIVE アクションを受け取った場合は、ハッシュ値を比較し差異があれば自分の State を更新します。
-   *
-   * @param message メッセージ
-   *
-   * @returns
-   */
-  const clientHandler = async (message: string) => {
-    const action = JSON.parse(message)
-
-    // DELIVE
-    if (isDeliveAction<{ revision: number | undefined }>(action)) {
-      // リビジョン番号を比較
-      if (revision.current >= (action.payload?.revision ?? 0)) return
-      dispatch(action)
-      return
-    }
-  }
-
-  return (
-    <SyncStateContext.Provider
-      value={{
-        state,
-        dispatchAction
-      }}
-    >
+    <SyncStateContext.Provider value={{ connection }}>
       {children}
     </SyncStateContext.Provider>
   )
 }
-
-export const useSyncState = () => {
-  const { state, dispatchAction } = React.useContext(SyncStateContext)
-  return {
-    state,
-    dispatchAction
-  }
-}
-
-export default SyncStateProvider

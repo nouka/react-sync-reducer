@@ -1,6 +1,8 @@
-import { Reducer } from 'react'
 import { Socket } from 'socket.io-client'
-import { ConnectionManagerOptions } from '../connection-manager/ConnectionManager'
+import {
+  ConnectionManager,
+  ConnectionManagerOptions
+} from '../connection-manager/ConnectionManager'
 import { RECEIVE_EVENTS } from '../constants'
 
 export type Identifier = string | number
@@ -23,15 +25,11 @@ export type RequestAction<T> = ActionBase<ActionType.REQUEST, T>
 export type State = { [key: string]: any } & { revision?: number }
 
 export interface ISyncStateContext {
-  state: State
-  dispatchAction: (action: ActionBase<any, any>) => void
+  connection: ConnectionManager
 }
 
 export type SyncStateProps = {
-  initState?: State
-  roomName?: string
   options?: Partial<ConnectionManagerOptions>
-  reducer: Reducer<any, ActionBase<any, any>>
 }
 
 export enum CustomEventType {

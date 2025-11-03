@@ -17,9 +17,10 @@ import {
  * @returns boolean
  */
 export const isDeliveAction = <S extends {}>(
-  action: ActionBase<any, any>
+  action: unknown
 ): action is DeliveAction<S> => {
-  return action.type === ActionType.DELIVE
+  if (!action || typeof action !== 'object' || !('type' in action)) return false
+  return (action as { type?: unknown }).type === ActionType.DELIVE
 }
 
 /**
@@ -30,9 +31,10 @@ export const isDeliveAction = <S extends {}>(
  * @returns boolean
  */
 export const isRequestAction = <A extends ActionBase<any, any>>(
-  action: ActionBase<any, any>
+  action: unknown
 ): action is RequestAction<A> => {
-  return action.type === ActionType.REQUEST
+  if (!action || typeof action !== 'object' || !('type' in action)) return false
+  return (action as { type?: unknown }).type === ActionType.REQUEST
 }
 
 /**

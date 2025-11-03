@@ -1,5 +1,3 @@
-export {
-  default as SyncStateProvider,
-  useSyncState
-} from './contexts/SyncStateProvider'
+export { SyncStateProvider } from './contexts/SyncStateProvider'
+export { useSyncReducer } from './hooks/useSyncReducer'
 export * from './types/'

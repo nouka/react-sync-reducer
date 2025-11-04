@@ -1,9 +1,10 @@
 import { useSyncReducer } from 'react-sync-reducer'
 import { ActionType } from './types/action'
 import { reducer } from './reducers'
+import { initState } from './types/state'
 
 const App = () => {
-  const { state, dispatch } = useSyncReducer(reducer)
+  const { state, dispatch, me } = useSyncReducer(reducer, initState)
 
   // TODO: もう少しリッチなゲームを作成する
   // 人狼ゲームにする（https://ja.wikipedia.org/wiki/%E4%BA%BA%E7%8B%BC%E3%82%B2%E3%83%BC%E3%83%A0）
@@ -17,16 +18,14 @@ const App = () => {
   // 人狼のプライベートチャットは常に存在
   // 終了条件は、人狼がすべて殺害、村人と占い師の人数が人狼以下になった場合
   // 最初はデザインは適当で、テキストのみで構成
+  if (!me) return
   return (
     <>
-      <p>{state.sharedString}</p>
       <button
         onClick={() =>
           dispatch({
             type: ActionType.ENTRY,
-            payload: {
-              someActionParameter: 'someAction'
-            }
+            payload: { id: me }
           })
         }
       >
@@ -36,7 +35,7 @@ const App = () => {
         onClick={() =>
           dispatch({
             type: ActionType.EXIT,
-            payload: undefined
+            payload: { id: me }
           })
         }
       >

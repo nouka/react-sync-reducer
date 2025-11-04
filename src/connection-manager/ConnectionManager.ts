@@ -267,6 +267,9 @@ export class ConnectionManager {
   get host() {
     return this.hostId
   }
+  get me() {
+    return this.id
+  }
   get isHost() {
     return this.id === this.hostId
   }

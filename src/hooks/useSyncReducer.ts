@@ -114,8 +114,12 @@ export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
     }
   }
 
+  const { me, host, isHost } = connection
   return {
     state,
-    dispatch: dispatchAction
+    dispatch: dispatchAction,
+    me,
+    host,
+    isHost
   }
 }

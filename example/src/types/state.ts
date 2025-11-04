@@ -1,7 +1,7 @@
 /**
  * 状態データの型
  */
-type Identifier = string | number
+export type Identifier = string | number
 
 export const Page = {
   INTRO: 'INTRO',
@@ -17,7 +17,6 @@ export const Role = {
 } as const
 
 export type State = {
-  sharedString: string
   page: keyof typeof Page
   participants: {
     id: Identifier
@@ -39,4 +38,16 @@ export type State = {
     id: Identifier
     message: string
   }[]
+}
+
+export const initState: State = {
+  page: Page.INTRO,
+  participants: [],
+  timer: {
+    current: 0,
+    limit: 0
+  },
+  votes: [],
+  publicMessages: [],
+  privateMessages: []
 }

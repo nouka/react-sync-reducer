@@ -22,6 +22,12 @@ export const TimerStatus = {
   FINISHED: 'FINISHED'
 } as const
 
+export const VoteStatus = {
+  INITIALIZED: 'INITIALIZED',
+  STARTED: 'STARTED',
+  FINISHED: 'FINISHED'
+} as const
+
 export type State = {
   page: keyof typeof Page
   participants: {
@@ -35,8 +41,9 @@ export type State = {
     limit: number
   }
   votes: {
-    id: Identifier
-  }[]
+    status: keyof typeof VoteStatus
+    vote: { [from: Identifier]: Identifier }
+  }
   publicMessages: {
     id: Identifier
     message: string
@@ -55,7 +62,10 @@ export const initState: State = {
     current: 0,
     limit: 0
   },
-  votes: [],
+  votes: {
+    status: VoteStatus.INITIALIZED,
+    vote: {}
+  },
   publicMessages: [],
   privateMessages: []
 }

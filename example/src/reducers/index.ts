@@ -1,18 +1,24 @@
 import type { Reducer } from 'react'
-import { initState, Page, TimerStatus, type State } from '../types/state'
+import {
+  initState,
+  Page,
+  TimerStatus,
+  VoteStatus,
+  type State
+} from '../types/state'
 import { ActionType, type Action } from '../types/action'
 
 export const reducer: Reducer<State, Action> = (state, action) => {
-  const modifiedState = CommonReducer(state, action)
+  const mutatedState = CommonReducer(state, action)
   switch (state.page) {
     case Page.INTRO:
-      return IntroReducer(modifiedState, action)
+      return IntroReducer(mutatedState, action)
     case Page.DAYTIME:
-      return DaytimeReducer(modifiedState, action)
+      return DaytimeReducer(mutatedState, action)
     case Page.MIDNIGHT:
-      return MidnightReducer(modifiedState, action)
+      return MidnightReducer(mutatedState, action)
     case Page.RESULT:
-      return ResultReducer(modifiedState, action)
+      return ResultReducer(mutatedState, action)
     default:
       throw new Error('invalid page')
   }
@@ -36,6 +42,20 @@ const CommonReducer: Reducer<State, Action> = (state, action) => {
         ]
       }
     }
+    case ActionType.PUBLIC_MESSAGE: {
+      const { id, message } = action.payload
+      return {
+        ...state,
+        publicMessages: [...state.publicMessages, { id, message }]
+      }
+    }
+    case ActionType.PRIVATE_MESSAGE: {
+      const { id, message } = action.payload
+      return {
+        ...state,
+        privateMessages: [...state.privateMessages, { id, message }]
+      }
+    }
     default:
       return state
   }
@@ -54,7 +74,12 @@ const IntroReducer: Reducer<State, Action> = (state, action) => {
 const DaytimeReducer: Reducer<State, Action> = (state, action) => {
   switch (action.type) {
     case ActionType.TO_NIGHT: {
-      return { ...state, page: Page.MIDNIGHT, timer: initState.timer }
+      return {
+        ...state,
+        page: Page.MIDNIGHT,
+        timer: initState.timer,
+        votes: initState.votes
+      }
     }
     case ActionType.TIMER_START: {
       const { limit } = action.payload
@@ -74,6 +99,28 @@ const DaytimeReducer: Reducer<State, Action> = (state, action) => {
       return {
         ...state,
         timer: { ...state.timer, status: TimerStatus.FINISHED }
+      }
+    }
+    case ActionType.VOTE_START: {
+      return {
+        ...state,
+        votes: { ...state.votes, status: VoteStatus.STARTED }
+      }
+    }
+    case ActionType.VOTE: {
+      const { from, to } = action.payload
+      return {
+        ...state,
+        votes: {
+          ...state.votes,
+          vote: { ...state.votes.vote, [from]: to }
+        }
+      }
+    }
+    case ActionType.VOTE_FINISHED: {
+      return {
+        ...state,
+        votes: { ...state.votes, status: VoteStatus.FINISHED }
       }
     }
     default:
@@ -84,10 +131,20 @@ const DaytimeReducer: Reducer<State, Action> = (state, action) => {
 const MidnightReducer: Reducer<State, Action> = (state, action) => {
   switch (action.type) {
     case ActionType.TO_DAYTIME: {
-      return { ...state, page: Page.DAYTIME, timer: initState.timer }
+      return {
+        ...state,
+        page: Page.DAYTIME,
+        timer: initState.timer,
+        votes: initState.votes
+      }
     }
     case ActionType.TO_RESULT: {
-      return { ...state, page: Page.RESULT, timer: initState.timer }
+      return {
+        ...state,
+        page: Page.RESULT,
+        timer: initState.timer,
+        votes: initState.votes
+      }
     }
     case ActionType.TIMER_START: {
       const { limit } = action.payload
@@ -107,6 +164,28 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
       return {
         ...state,
         timer: { ...state.timer, status: TimerStatus.FINISHED }
+      }
+    }
+    case ActionType.VOTE_START: {
+      return {
+        ...state,
+        votes: { ...state.votes, status: VoteStatus.STARTED }
+      }
+    }
+    case ActionType.VOTE: {
+      const { from, to } = action.payload
+      return {
+        ...state,
+        votes: {
+          ...state.votes,
+          vote: { ...state.votes.vote, [from]: to }
+        }
+      }
+    }
+    case ActionType.VOTE_FINISHED: {
+      return {
+        ...state,
+        votes: { ...state.votes, status: VoteStatus.FINISHED }
       }
     }
     default:

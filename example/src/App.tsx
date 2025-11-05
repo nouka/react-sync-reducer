@@ -1,10 +1,8 @@
-import { useSyncReducer } from 'react-sync-reducer'
+import { useApp } from './contexts/AppContext'
 import { ActionType } from './types/action'
-import { reducer } from './reducers'
-import { initState } from './types/state'
 
 const App = () => {
-  const { state, dispatch, me } = useSyncReducer(reducer, initState)
+  const { state, dispatch, me } = useApp()
 
   // TODO: もう少しリッチなゲームを作成する
   // 人狼ゲームにする（https://ja.wikipedia.org/wiki/%E4%BA%BA%E7%8B%BC%E3%82%B2%E3%83%BC%E3%83%A0）

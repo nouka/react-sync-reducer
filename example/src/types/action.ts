@@ -1,5 +1,5 @@
 import type { ActionBase } from 'react-sync-reducer'
-import type { Identifier } from './state'
+import type { Identifier, Role, TimerStatus } from './state'
 
 /**
  * アクションタイプ
@@ -11,6 +11,7 @@ export const ActionType = {
   TO_NIGHT: 'example/TO_NIGHT',
   TO_DAYTIME: 'example/TO_DAYTIME',
   TO_RESULT: 'example/TO_RESULT',
+  TIMER_START: 'example/TIMER_START',
   TIMER_COUNTDOWN: 'example/TIMER_COUNTDOWN',
   TIMER_FINISHED: 'example/TIMER_FINISHED',
   VOTE: 'example/VOTE',
@@ -24,13 +25,17 @@ export const ActionType = {
  */
 export type EntryAction = ActionBase<
   typeof ActionType.ENTRY,
-  { id: Identifier }
+  { id: Identifier; name: string; role: keyof typeof Role }
 >
 export type ExitAction = ActionBase<typeof ActionType.EXIT, { id: Identifier }>
 export type StartAction = ActionBase<typeof ActionType.START>
 export type ToNightAction = ActionBase<typeof ActionType.TO_NIGHT>
 export type ToDaytimeAction = ActionBase<typeof ActionType.TO_DAYTIME>
 export type ToResultAction = ActionBase<typeof ActionType.TO_RESULT>
+export type TimerStartAction = ActionBase<
+  typeof ActionType.TIMER_START,
+  { limit: number }
+>
 export type TimerCountdownAction = ActionBase<
   typeof ActionType.TIMER_COUNTDOWN,
   { current: number }
@@ -63,6 +68,7 @@ export type Action =
   | ToNightAction
   | ToDaytimeAction
   | ToResultAction
+  | TimerStartAction
   | TimerCountdownAction
   | TimerFinishedAction
   | VoteAction

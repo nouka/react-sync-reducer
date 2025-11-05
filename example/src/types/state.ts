@@ -16,6 +16,12 @@ export const Role = {
   FORTUNE_TELLER: 'FORTUNE_TELLER'
 } as const
 
+export const TimerStatus = {
+  INITIALIZED: 'INITIALIZED',
+  STARTED: 'STARTED',
+  FINISHED: 'FINISHED'
+} as const
+
 export type State = {
   page: keyof typeof Page
   participants: {
@@ -24,6 +30,7 @@ export type State = {
     role: keyof typeof Role
   }[]
   timer: {
+    status: keyof typeof TimerStatus
     current: number
     limit: number
   }
@@ -44,6 +51,7 @@ export const initState: State = {
   page: Page.INTRO,
   participants: [],
   timer: {
+    status: TimerStatus.INITIALIZED,
     current: 0,
     limit: 0
   },

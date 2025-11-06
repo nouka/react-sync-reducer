@@ -6,14 +6,15 @@ import { Role } from '../types/state'
 export const Intro = () => {
   const { state, dispatch, me, isHost } = useApp()
   const [name, setName] = useState<string>('')
-  const participant = state.participants.find(
-    (participant) => participant.id === me
+  const participant = useMemo(
+    () => state.participants.find((participant) => participant.id === me),
+    [state.participants.length]
   )
 
   const shuffle = useCallback(<T extends unknown>(array: T[]) => {
-    for (var i = array.length - 1; i > 0; i--) {
-      var r = Math.floor(Math.random() * (i + 1))
-      var tmp = array[i]
+    for (let i = array.length - 1; i > 0; i--) {
+      const r = Math.floor(Math.random() * (i + 1))
+      const tmp = array[i]
       array[i] = array[r]
       array[r] = tmp
     }
@@ -61,12 +62,15 @@ export const Intro = () => {
         if (!isHost) {
           return (
             <>
+              <p>{participant.name} さん</p>
               <p>ホストがゲームを開始するのをお待ちください</p>
             </>
           )
         }
         return (
           <>
+            <p>{participant.name} さん</p>
+            <p>ゲームを開始しますか？</p>
             <button
               onClick={() =>
                 dispatch({

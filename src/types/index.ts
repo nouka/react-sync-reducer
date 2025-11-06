@@ -7,10 +7,14 @@ import { RECEIVE_EVENTS } from '../constants'
 
 export type Identifier = string | number
 
-export type ActionBase<T, P = undefined> = {
-  type: T
-  payload: P
-}
+export type ActionBase<T, P = undefined> = P extends undefined
+  ? {
+      type: T
+    }
+  : {
+      type: T
+      payload: P
+    }
 
 export type Handler<T> = (value: T) => void
 

@@ -16,7 +16,7 @@ import {
  *
  * @returns boolean
  */
-export const isDeliveAction = <S extends {}>(
+export const isDeliveAction = <S extends State>(
   action: unknown
 ): action is DeliveAction<S> => {
   if (!action || typeof action !== 'object' || !('type' in action)) return false
@@ -54,7 +54,8 @@ export const handleAction =
   (state: S, action: A): S => {
     // DELIVEの場合はそのままStateを返す（クライアント専用）
     if (isDeliveAction(action)) {
-      return { ...action.payload }
+      const { payload } = action
+      return { ...payload } as S
     }
     // Reducerの実行
     const nextState = reducer(state, action)

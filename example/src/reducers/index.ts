@@ -2,6 +2,7 @@ import type { Reducer } from 'react'
 import {
   initState,
   Page,
+  Role,
   TimerStatus,
   VoteStatus,
   type State
@@ -27,10 +28,10 @@ export const reducer: Reducer<State, Action> = (state, action) => {
 const CommonReducer: Reducer<State, Action> = (state, action) => {
   switch (action.type) {
     case ActionType.ENTRY: {
-      const { id, name, role } = action.payload
+      const { id, name } = action.payload
       return {
         ...state,
-        participants: [...state.participants, { id, name, role }]
+        participants: [...state.participants, { id, name, role: Role.VILLAGER }]
       }
     }
     case ActionType.EXIT: {
@@ -64,7 +65,16 @@ const CommonReducer: Reducer<State, Action> = (state, action) => {
 const IntroReducer: Reducer<State, Action> = (state, action) => {
   switch (action.type) {
     case ActionType.START: {
-      return { ...state, page: Page.DAYTIME }
+      const { participants } = state
+      const nextParticipants = participants.map((participant) => {
+        const payload = action.payload.find(
+          (payload) => payload.id === participant.id
+        )
+        if (!payload) return participant
+        const { role } = payload
+        return { ...participant, role }
+      })
+      return { ...state, page: Page.DAYTIME, participants: nextParticipants }
     }
     default:
       return state
@@ -81,48 +91,14 @@ const DaytimeReducer: Reducer<State, Action> = (state, action) => {
         votes: initState.votes
       }
     }
-    case ActionType.TIMER_START: {
-      const { limit } = action.payload
-      return {
-        ...state,
-        timer: { ...state.timer, status: TimerStatus.STARTED, limit }
-      }
-    }
-    case ActionType.TIMER_COUNTDOWN: {
-      const { current } = action.payload
-      return {
-        ...state,
-        timer: { ...state.timer, current }
-      }
-    }
-    case ActionType.TIMER_FINISHED: {
-      return {
-        ...state,
-        timer: { ...state.timer, status: TimerStatus.FINISHED }
-      }
-    }
-    case ActionType.VOTE_START: {
-      return {
-        ...state,
-        votes: { ...state.votes, status: VoteStatus.STARTED }
-      }
-    }
-    case ActionType.VOTE: {
-      const { from, to } = action.payload
-      return {
-        ...state,
-        votes: {
-          ...state.votes,
-          vote: { ...state.votes.vote, [from]: to }
-        }
-      }
-    }
-    case ActionType.VOTE_FINISHED: {
-      return {
-        ...state,
-        votes: { ...state.votes, status: VoteStatus.FINISHED }
-      }
-    }
+    case ActionType.TIMER_START:
+    case ActionType.TIMER_COUNTDOWN:
+    case ActionType.TIMER_FINISHED:
+      return TimerReducer(state, action)
+    case ActionType.VOTE_START:
+    case ActionType.VOTE:
+    case ActionType.VOTE_FINISHED:
+      return VoteReducer(state, action)
     default:
       return state
   }
@@ -146,6 +122,28 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
         votes: initState.votes
       }
     }
+    case ActionType.TIMER_START:
+    case ActionType.TIMER_COUNTDOWN:
+    case ActionType.TIMER_FINISHED:
+      return TimerReducer(state, action)
+    case ActionType.VOTE_START:
+    case ActionType.VOTE:
+    case ActionType.VOTE_FINISHED:
+      return VoteReducer(state, action)
+    default:
+      return state
+  }
+}
+
+const ResultReducer: Reducer<State, Action> = (state, action) => {
+  switch (action.type) {
+    default:
+      return state
+  }
+}
+
+const TimerReducer: Reducer<State, Action> = (state, action) => {
+  switch (action.type) {
     case ActionType.TIMER_START: {
       const { limit } = action.payload
       return {
@@ -166,6 +164,13 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
         timer: { ...state.timer, status: TimerStatus.FINISHED }
       }
     }
+    default:
+      return state
+  }
+}
+
+const VoteReducer: Reducer<State, Action> = (state, action) => {
+  switch (action.type) {
     case ActionType.VOTE_START: {
       return {
         ...state,
@@ -188,13 +193,6 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
         votes: { ...state.votes, status: VoteStatus.FINISHED }
       }
     }
-    default:
-      return state
-  }
-}
-
-const ResultReducer: Reducer<State, Action> = (state, action) => {
-  switch (action.type) {
     default:
       return state
   }

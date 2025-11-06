@@ -26,10 +26,13 @@ export const ActionType = {
  */
 export type EntryAction = ActionBase<
   typeof ActionType.ENTRY,
-  { id: Identifier; name: string; role: keyof typeof Role }
+  { id: Identifier; name: string }
 >
 export type ExitAction = ActionBase<typeof ActionType.EXIT, { id: Identifier }>
-export type StartAction = ActionBase<typeof ActionType.START>
+export type StartAction = ActionBase<
+  typeof ActionType.START,
+  { id: Identifier; role: keyof typeof Role }[]
+>
 export type ToNightAction = ActionBase<typeof ActionType.TO_NIGHT>
 export type ToDaytimeAction = ActionBase<typeof ActionType.TO_DAYTIME>
 export type ToResultAction = ActionBase<typeof ActionType.TO_RESULT>

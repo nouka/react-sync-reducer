@@ -50,17 +50,19 @@ export class ConnectionManager {
   /**
    * 自分のID
    */
-  private id: Identifier | undefined
+  private id: Identifier
 
   /**
    * ホストのID
    */
-  private hostId: Identifier | undefined
+  private hostId: Identifier
 
   constructor(options?: Partial<ConnectionManagerOptions>) {
     this.options = margeDefaultOptions(DEFAULT_OPTIONS, options)
     this.senderInstance = new WebRTCSender()
     this.receiverInstance = new WebRTCReceiver()
+    this.id = ''
+    this.hostId = ''
   }
 
   /**

@@ -1,3 +1,7 @@
 export const Midnight = () => {
-  return <></>
+  return (
+    <>
+      <h1>Midnight</h1>
+    </>
+  )
 }

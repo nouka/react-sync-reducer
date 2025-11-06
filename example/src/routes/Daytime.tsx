@@ -1,3 +1,7 @@
 export const Daytime = () => {
-  return <></>
+  return (
+    <>
+      <h1>Daytime</h1>
+    </>
+  )
 }

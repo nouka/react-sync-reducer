@@ -15,26 +15,26 @@ export const SyncStateProvider: React.FC<
   React.PropsWithChildren<SyncStateProps>
 > = ({ children, options }) => {
   const isBooted = React.useRef<boolean>(false)
-  const connection = React.useMemo(
-    () => new ConnectionManager(options),
-    [options]
-  )
 
-  const [isConnected, setIsConnected] = React.useState<boolean>(false)
+  const [connection, setConnection] = React.useState<ConnectionManager | null>(
+    null
+  )
 
   const bootstrap = React.useCallback(async () => {
     if (isBooted.current) return
     isBooted.current = true
 
-    const connectionState = await connection.connect()
+    const { isHost, ...rest } = options
+    const connection = new ConnectionManager(rest)
+    const connectionState = await connection.connect(isHost)
     console.debug('connectionState=', connectionState)
     if (connectionState === ConnectionState.CONNECTED) {
-      setIsConnected(true)
+      setConnection(connection)
     }
 
     return () => {
       connection.close()
-      setIsConnected(false)
+      setConnection(null)
       isBooted.current = false
     }
   }, [])
@@ -46,10 +46,10 @@ export const SyncStateProvider: React.FC<
     })()
   }, [bootstrap])
 
-  if (!isConnected) return null
+  if (!connection) return null
 
   return (
-    <SyncStateContext.Provider value={{ connection }}>
+    <SyncStateContext.Provider value={{ connection, isHost: options.isHost }}>
       {children}
     </SyncStateContext.Provider>
   )

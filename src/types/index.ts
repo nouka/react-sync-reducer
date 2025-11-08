@@ -30,10 +30,11 @@ export type State = { [key: string]: any } & { revision?: number }
 
 export interface ISyncStateContext {
   connection: ConnectionManager
+  isHost: boolean
 }
 
 export type SyncStateProps = {
-  options?: Partial<ConnectionManagerOptions>
+  options: Partial<ConnectionManagerOptions> & { isHost: boolean }
 }
 
 export const CustomEventType = {
@@ -67,6 +68,7 @@ export type ReceiveEventHandlers = Set<
         socket: Socket,
         sdp: RTCSessionDescription & {
           id: Identifier
+          isHost: boolean
         }
       ) => void
     }
@@ -80,6 +82,6 @@ export type ReceiveEventHandlers = Set<
     }
   | {
       type: typeof RECEIVE_EVENTS.COMPLETED
-      handler: (id: Identifier) => void
+      handler: () => void
     }
 >

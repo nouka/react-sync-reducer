@@ -34,6 +34,7 @@ export type State = {
     id: Identifier
     name: string
     role: keyof typeof Role
+    living: boolean
   }[]
   timer: {
     status: keyof typeof TimerStatus

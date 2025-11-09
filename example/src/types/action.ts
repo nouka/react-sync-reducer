@@ -33,8 +33,18 @@ export type StartAction = ActionBase<
   typeof ActionType.START,
   { id: Identifier; role: keyof typeof Role }[]
 >
-export type ToNightAction = ActionBase<typeof ActionType.TO_NIGHT>
-export type ToDaytimeAction = ActionBase<typeof ActionType.TO_DAYTIME>
+export type ToNightAction = ActionBase<
+  typeof ActionType.TO_NIGHT,
+  {
+    target: Identifier
+  }
+>
+export type ToDaytimeAction = ActionBase<
+  typeof ActionType.TO_DAYTIME,
+  {
+    target: Identifier
+  }
+>
 export type ToResultAction = ActionBase<typeof ActionType.TO_RESULT>
 export type TimerStartAction = ActionBase<
   typeof ActionType.TIMER_START,
@@ -45,10 +55,7 @@ export type TimerCountdownAction = ActionBase<
   { current: number }
 >
 export type TimerFinishedAction = ActionBase<typeof ActionType.TIMER_FINISHED>
-export type VoteStartAction = ActionBase<
-  typeof ActionType.VOTE_START,
-  { from: Identifier; to: Identifier }
->
+export type VoteStartAction = ActionBase<typeof ActionType.VOTE_START>
 export type VoteAction = ActionBase<
   typeof ActionType.VOTE,
   { from: Identifier; to: Identifier }

@@ -31,7 +31,10 @@ const CommonReducer: Reducer<State, Action> = (state, action) => {
       const { id, name } = action.payload
       return {
         ...state,
-        participants: [...state.participants, { id, name, role: Role.VILLAGER }]
+        participants: [
+          ...state.participants,
+          { id, name, role: Role.VILLAGER, living: true }
+        ]
       }
     }
     case ActionType.EXIT: {
@@ -41,20 +44,6 @@ const CommonReducer: Reducer<State, Action> = (state, action) => {
         participants: [
           ...state.participants.filter((participant) => participant.id !== id)
         ]
-      }
-    }
-    case ActionType.PUBLIC_MESSAGE: {
-      const { id, message } = action.payload
-      return {
-        ...state,
-        publicMessages: [...state.publicMessages, { id, message }]
-      }
-    }
-    case ActionType.PRIVATE_MESSAGE: {
-      const { id, message } = action.payload
-      return {
-        ...state,
-        privateMessages: [...state.privateMessages, { id, message }]
       }
     }
     default:
@@ -84,34 +73,19 @@ const IntroReducer: Reducer<State, Action> = (state, action) => {
 const DaytimeReducer: Reducer<State, Action> = (state, action) => {
   switch (action.type) {
     case ActionType.TO_NIGHT: {
+      const { target } = action.payload
+      const nextParticipants = state.participants.map((participant) => {
+        if (participant.id === target) {
+          return { ...participant, living: false }
+        }
+        return { ...participant }
+      })
       return {
         ...state,
         page: Page.MIDNIGHT,
         timer: initState.timer,
-        votes: initState.votes
-      }
-    }
-    case ActionType.TIMER_START:
-    case ActionType.TIMER_COUNTDOWN:
-    case ActionType.TIMER_FINISHED:
-      return TimerReducer(state, action)
-    case ActionType.VOTE_START:
-    case ActionType.VOTE:
-    case ActionType.VOTE_FINISHED:
-      return VoteReducer(state, action)
-    default:
-      return state
-  }
-}
-
-const MidnightReducer: Reducer<State, Action> = (state, action) => {
-  switch (action.type) {
-    case ActionType.TO_DAYTIME: {
-      return {
-        ...state,
-        page: Page.DAYTIME,
-        timer: initState.timer,
-        votes: initState.votes
+        votes: initState.votes,
+        participants: nextParticipants
       }
     }
     case ActionType.TO_RESULT: {
@@ -130,6 +104,59 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
     case ActionType.VOTE:
     case ActionType.VOTE_FINISHED:
       return VoteReducer(state, action)
+    case ActionType.PUBLIC_MESSAGE: {
+      const { id, message } = action.payload
+      return {
+        ...state,
+        publicMessages: [...state.publicMessages, { id, message }]
+      }
+    }
+    default:
+      return state
+  }
+}
+
+const MidnightReducer: Reducer<State, Action> = (state, action) => {
+  switch (action.type) {
+    case ActionType.TO_DAYTIME: {
+      const { target } = action.payload
+      const nextParticipants = state.participants.map((participant) => {
+        if (participant.id === target) {
+          return { ...participant, living: false }
+        }
+        return { ...participant }
+      })
+      return {
+        ...state,
+        page: Page.DAYTIME,
+        timer: initState.timer,
+        votes: initState.votes,
+        participants: nextParticipants
+      }
+    }
+    case ActionType.TO_RESULT: {
+      return {
+        ...state,
+        page: Page.RESULT,
+        timer: initState.timer,
+        votes: initState.votes
+      }
+    }
+    case ActionType.TIMER_START:
+    case ActionType.TIMER_COUNTDOWN:
+    case ActionType.TIMER_FINISHED:
+      return TimerReducer(state, action)
+    case ActionType.VOTE_START:
+    case ActionType.VOTE:
+    case ActionType.VOTE_FINISHED:
+      return VoteReducer(state, action)
+    case ActionType.PRIVATE_MESSAGE: {
+      const { id, message } = action.payload
+      return {
+        ...state,
+        privateMessages: [...state.privateMessages, { id, message }]
+      }
+    }
     default:
       return state
   }
@@ -148,7 +175,7 @@ const TimerReducer: Reducer<State, Action> = (state, action) => {
       const { limit } = action.payload
       return {
         ...state,
-        timer: { ...state.timer, status: TimerStatus.STARTED, limit }
+        timer: { ...initState.timer, status: TimerStatus.STARTED, limit }
       }
     }
     case ActionType.TIMER_COUNTDOWN: {
@@ -174,7 +201,7 @@ const VoteReducer: Reducer<State, Action> = (state, action) => {
     case ActionType.VOTE_START: {
       return {
         ...state,
-        votes: { ...state.votes, status: VoteStatus.STARTED }
+        votes: { ...initState.votes, status: VoteStatus.STARTED }
       }
     }
     case ActionType.VOTE: {
@@ -182,15 +209,15 @@ const VoteReducer: Reducer<State, Action> = (state, action) => {
       return {
         ...state,
         votes: {
-          ...state.votes,
-          vote: { ...state.votes.vote, [from]: to }
+          vote: { ...state.votes.vote, [from]: to },
+          status: state.votes.status
         }
       }
     }
     case ActionType.VOTE_FINISHED: {
       return {
         ...state,
-        votes: { ...state.votes, status: VoteStatus.FINISHED }
+        votes: { vote: { ...state.votes.vote }, status: VoteStatus.FINISHED }
       }
     }
     default:

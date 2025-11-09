@@ -4,7 +4,7 @@ import { ActionType } from '../types/action'
 import { Role } from '../types/state'
 
 export const Intro = () => {
-  const { state, dispatch, me, isHost } = useApp()
+  const { state, dispatch, me, isHost, host } = useApp()
   const [name, setName] = useState<string>('')
   const participant = useMemo(
     () => state.participants.find((participant) => participant.id === me),
@@ -24,7 +24,7 @@ export const Intro = () => {
     let r = [Role.VILLAGER, Role.FORTUNE_TELLER, Role.WEREWOLF]
     const remain = Math.max(state.participants.length - r.length, 0)
     for (let i = 0; i < remain; i++) {
-      i % 4 === 0 ? r.push(Role.WEREWOLF) : r.push(Role.VILLAGER)
+      ;(i + 1) % 4 === 0 ? r.push(Role.WEREWOLF) : r.push(Role.VILLAGER)
     }
     shuffle(r)
     return r
@@ -33,6 +33,9 @@ export const Intro = () => {
   return (
     <>
       <h1>Intro</h1>
+      <p>YourId: {new String(me)}</p>
+      <p>HostId: {new String(host)}</p>
+      <p>isHost: {new String(isHost)}</p>
       {(() => {
         if (!participant) {
           return (

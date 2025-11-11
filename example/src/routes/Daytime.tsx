@@ -1,93 +1,90 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
+import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
-import { Role, TimerStatus, VoteStatus, type Identifier } from '../types/state'
+import { Role, VoteStatus, type Identifier } from '../types/state'
 
 export const Daytime = () => {
   const { state, dispatch, me, isHost } = useApp()
+
   const [message, setMessage] = useState('')
 
+  const handleVoteStart = useCallback(() => {
+    dispatch({
+      type: ActionType.VOTE_START
+    })
+  }, [])
+
+  const handleFinished = useCallback(() => {
+    const grouped = Object.entries(state.votes.vote).reduce(
+      (a: Record<string, Identifier[]>, r, _i, _v, k = r[0]) => {
+        return (a[k] || (a[k] = [])).push(r[1]), a
+      },
+      {}
+    )
+    const target = Object.entries(grouped).reduce((a, b) => {
+      return a[1].length >= b[1].length ? a : b
+    })[0]
+    if (
+      state.participants
+        .filter((participant) => participant.id !== target)
+        .some((participant) => participant.role === Role.WEREWOLF) ||
+      state.participants
+        .filter((participant) => participant.id !== target)
+        .some((participant) => participant.role !== Role.WEREWOLF)
+    ) {
+      dispatch({
+        type: ActionType.TO_NIGHT,
+        payload: {
+          target
+        }
+      })
+      return
+    }
+    dispatch({
+      type: ActionType.TO_RESULT
+    })
+  }, [state.votes.vote, state.participants])
+
+  const discussionTimer = useTimer({
+    initCount: 10,
+    onFinished: handleVoteStart
+  })
+  const voteTimer = useTimer({
+    initCount: 10,
+    onFinished: handleFinished
+  })
+
   useEffect(() => {
     if (!isHost) return
     dispatch({
-      type: ActionType.TIMER_START,
+      type: ActionType.TIMER_COUNTDOWN,
       payload: {
-        limit: 60
+        current: discussionTimer.count
       }
     })
-    const timer = setInterval(() => {
-      dispatch({
-        type: ActionType.TIMER_COUNTDOWN,
-        payload: {
-          current: state.timer.current++
-        }
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [isHost])
+  }, [isHost, discussionTimer.count])
 
   useEffect(() => {
     if (!isHost) return
-    if (state.timer.status !== TimerStatus.STARTED) return
-    if (state.timer.current < state.timer.limit) return
-
     dispatch({
-      type: ActionType.TIMER_FINISHED
-    })
-    if (state.votes.status === VoteStatus.INITIALIZED) {
-      dispatch({
-        type: ActionType.TIMER_START,
-        payload: {
-          limit: 60
-        }
-      })
-      dispatch({
-        type: ActionType.VOTE_START
-      })
-      const timer = setInterval(() => {
-        dispatch({
-          type: ActionType.TIMER_COUNTDOWN,
-          payload: {
-            current: state.timer.current++
-          }
-        })
-      }, 1000)
-      return () => clearInterval(timer)
-    }
-    if (state.votes.status === VoteStatus.STARTED) {
-      dispatch({
-        type: ActionType.VOTE_FINISHED
-      })
-      const grouped = Object.entries(state.votes.vote).reduce(
-        (a: Record<string, Identifier[]>, r, _i, _v, k = r[0]) => {
-          return (a[k] || (a[k] = [])).push(r[1]), a
-        },
-        {}
-      )
-      const target = Object.entries(grouped).reduce((a, b) => {
-        return a[1].length >= b[1].length ? a : b
-      })[0]
-      if (
-        state.participants
-          .filter((participant) => participant.id !== target)
-          .some((participant) => participant.role === Role.WEREWOLF) ||
-        state.participants
-          .filter((participant) => participant.id !== target)
-          .some((participant) => participant.role !== Role.WEREWOLF)
-      ) {
-        dispatch({
-          type: ActionType.TO_NIGHT,
-          payload: {
-            target
-          }
-        })
-        return
+      type: ActionType.TIMER_COUNTDOWN,
+      payload: {
+        current: voteTimer.count
       }
-      dispatch({
-        type: ActionType.TO_RESULT
-      })
-    }
-  }, [isHost, state.timer.current, state.timer.limit, state.votes.status])
+    })
+  }, [isHost, voteTimer.count])
+
+  useEffect(() => {
+    if (!isHost) return
+    discussionTimer.start()
+  }, [isHost, discussionTimer.start])
+
+  useEffect(() => {
+    if (!isHost) return
+    if (state.votes.status !== VoteStatus.STARTED) return
+    voteTimer.start()
+  }, [isHost, state.votes.status])
 
   const participant = state.participants.find(
     (participant) => participant.id === me
@@ -120,7 +117,7 @@ export const Daytime = () => {
       <h1>Daytime</h1>
       <p>{participant.name} さん</p>
       <p>あなたは {participant.role} です</p>
-      <p>残り {state.timer.limit - state.timer.current} 秒</p>
+      <p>残り {state.timer.current} 秒</p>
       <input
         type="text"
         value={message}

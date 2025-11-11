@@ -1,44 +1,14 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
+import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
-import { Role, TimerStatus, type Identifier } from '../types/state'
+import { Role, VoteStatus, type Identifier } from '../types/state'
 
 export const Midnight = () => {
   const { state, dispatch, me, isHost } = useApp()
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    if (!isHost) return
-    dispatch({
-      type: ActionType.TIMER_START,
-      payload: {
-        limit: 60
-      }
-    })
-    dispatch({
-      type: ActionType.VOTE_START
-    })
-    const timer = setInterval(() => {
-      dispatch({
-        type: ActionType.TIMER_COUNTDOWN,
-        payload: {
-          current: state.timer.current++
-        }
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [isHost])
-
-  useEffect(() => {
-    if (!isHost) return
-    if (state.timer.status !== TimerStatus.STARTED) return
-    if (state.timer.current < state.timer.limit) return
-    dispatch({
-      type: ActionType.TIMER_FINISHED
-    })
-    dispatch({
-      type: ActionType.VOTE_FINISHED
-    })
+  const handleFinished = useCallback(() => {
     const grouped = Object.entries(state.votes.vote).reduce(
       (a: Record<string, Identifier[]>, r, _i, _v, k = r[0]) => {
         return (a[k] || (a[k] = [])).push(r[1]), a
@@ -67,7 +37,30 @@ export const Midnight = () => {
     dispatch({
       type: ActionType.TO_RESULT
     })
-  }, [isHost, state.timer.current, state.timer.limit])
+  }, [state.votes.vote, state.participants])
+
+  const { count, start } = useTimer({
+    initCount: 10,
+    onFinished: handleFinished
+  })
+
+  useEffect(() => {
+    if (!isHost) return
+    dispatch({
+      type: ActionType.TIMER_COUNTDOWN,
+      payload: {
+        current: count
+      }
+    })
+  }, [isHost, count])
+
+  useEffect(() => {
+    if (!isHost) return
+    dispatch({
+      type: ActionType.VOTE_START
+    })
+    start()
+  }, [isHost, start])
 
   const participant = state.participants.find(
     (participant) => participant.id === me
@@ -100,7 +93,7 @@ export const Midnight = () => {
       <h1>Midnight</h1>
       <p>{participant.name} さん</p>
       <p>あなたは {participant.role} です</p>
-      <p>残り {state.timer.limit - state.timer.current} 秒</p>
+      <p>残り {state.timer.current} 秒</p>
       {participant.role === Role.WEREWOLF && (
         <>
           <input
@@ -123,14 +116,14 @@ export const Midnight = () => {
               </Fragment>
             )
           })}
-          {!state.votes.vote[me] &&
+          {state.votes.status === VoteStatus.STARTED &&
             state.participants
               .filter((participant) => participant.role !== Role.WEREWOLF)
               .map((participant) => {
                 const { id, name } = participant
                 return (
                   <Fragment key={`vote-${id}`}>
-                    {name}
+                    {name} {state.votes.vote[me] === id && 'selected'}
                     <button onClick={() => handleSendVote(id)}>
                       この人を喰う
                     </button>

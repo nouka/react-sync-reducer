@@ -11,12 +11,10 @@ export const ActionType = {
   TO_NIGHT: 'example/TO_NIGHT',
   TO_DAYTIME: 'example/TO_DAYTIME',
   TO_RESULT: 'example/TO_RESULT',
-  TIMER_START: 'example/TIMER_START',
   TIMER_COUNTDOWN: 'example/TIMER_COUNTDOWN',
-  TIMER_FINISHED: 'example/TIMER_FINISHED',
+  DISCUSSION_START: 'example/DISCUSSION_START',
   VOTE_START: 'example/VOTE_START',
   VOTE: 'example/VOTE',
-  VOTE_FINISHED: 'example/VOTE_FINISHED',
   PUBLIC_MESSAGE: 'example/PUBLIC_MESSAGE',
   PRIVATE_MESSAGE: 'example/PRIVATE_MESSAGE'
 } as const
@@ -36,31 +34,31 @@ export type StartAction = ActionBase<
 export type ToNightAction = ActionBase<
   typeof ActionType.TO_NIGHT,
   {
-    target: Identifier
+    target: Identifier | undefined
   }
 >
 export type ToDaytimeAction = ActionBase<
   typeof ActionType.TO_DAYTIME,
   {
-    target: Identifier
+    target: Identifier | undefined
   }
 >
 export type ToResultAction = ActionBase<typeof ActionType.TO_RESULT>
-export type TimerStartAction = ActionBase<
-  typeof ActionType.TIMER_START,
-  { limit: number }
->
 export type TimerCountdownAction = ActionBase<
   typeof ActionType.TIMER_COUNTDOWN,
   { current: number }
 >
-export type TimerFinishedAction = ActionBase<typeof ActionType.TIMER_FINISHED>
+export type DiscussionStartAction = ActionBase<
+  typeof ActionType.DISCUSSION_START,
+  {
+    limit: number
+  }
+>
 export type VoteStartAction = ActionBase<typeof ActionType.VOTE_START>
 export type VoteAction = ActionBase<
   typeof ActionType.VOTE,
   { from: Identifier; to: Identifier }
 >
-export type VoteFinishedAction = ActionBase<typeof ActionType.VOTE_FINISHED>
 export type PublicMessageAction = ActionBase<
   typeof ActionType.PUBLIC_MESSAGE,
   {
@@ -83,11 +81,9 @@ export type Action =
   | ToNightAction
   | ToDaytimeAction
   | ToResultAction
-  | TimerStartAction
   | TimerCountdownAction
-  | TimerFinishedAction
+  | DiscussionStartAction
   | VoteStartAction
   | VoteAction
-  | VoteFinishedAction
   | PublicMessageAction
   | PrivateMessageAction

@@ -1,15 +1,9 @@
 import type { Reducer } from 'react'
-import {
-  initState,
-  Page,
-  Role,
-  TimerStatus,
-  VoteStatus,
-  type State
-} from '../types/state'
 import { ActionType, type Action } from '../types/action'
+import { initState, Page, Role, VoteStatus, type State } from '../types/state'
 
 export const reducer: Reducer<State, Action> = (state, action) => {
+  console.log('reducer', state, action)
   const mutatedState = CommonReducer(state, action)
   switch (state.page) {
     case Page.INTRO:
@@ -96,14 +90,26 @@ const DaytimeReducer: Reducer<State, Action> = (state, action) => {
         votes: initState.votes
       }
     }
-    case ActionType.TIMER_START:
-    case ActionType.TIMER_COUNTDOWN:
-    case ActionType.TIMER_FINISHED:
-      return TimerReducer(state, action)
-    case ActionType.VOTE_START:
-    case ActionType.VOTE:
-    case ActionType.VOTE_FINISHED:
-      return VoteReducer(state, action)
+    case ActionType.TIMER_COUNTDOWN: {
+      const { current } = action.payload
+      return {
+        ...state,
+        timer: { ...state.timer, current }
+      }
+    }
+    case ActionType.VOTE_START: {
+      return {
+        ...state,
+        votes: { ...initState.votes, status: VoteStatus.STARTED }
+      }
+    }
+    case ActionType.VOTE: {
+      const { from, to } = action.payload
+      return {
+        ...state,
+        votes: { ...state.votes, vote: { ...state.votes.vote, [from]: to } }
+      }
+    }
     case ActionType.PUBLIC_MESSAGE: {
       const { id, message } = action.payload
       return {
@@ -142,14 +148,26 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
         votes: initState.votes
       }
     }
-    case ActionType.TIMER_START:
-    case ActionType.TIMER_COUNTDOWN:
-    case ActionType.TIMER_FINISHED:
-      return TimerReducer(state, action)
-    case ActionType.VOTE_START:
-    case ActionType.VOTE:
-    case ActionType.VOTE_FINISHED:
-      return VoteReducer(state, action)
+    case ActionType.TIMER_COUNTDOWN: {
+      const { current } = action.payload
+      return {
+        ...state,
+        timer: { ...state.timer, current }
+      }
+    }
+    case ActionType.VOTE_START: {
+      return {
+        ...state,
+        votes: { ...initState.votes, status: VoteStatus.STARTED }
+      }
+    }
+    case ActionType.VOTE: {
+      const { from, to } = action.payload
+      return {
+        ...state,
+        votes: { ...state.votes, vote: { ...state.votes.vote, [from]: to } }
+      }
+    }
     case ActionType.PRIVATE_MESSAGE: {
       const { id, message } = action.payload
       return {
@@ -164,62 +182,6 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
 
 const ResultReducer: Reducer<State, Action> = (state, action) => {
   switch (action.type) {
-    default:
-      return state
-  }
-}
-
-const TimerReducer: Reducer<State, Action> = (state, action) => {
-  switch (action.type) {
-    case ActionType.TIMER_START: {
-      const { limit } = action.payload
-      return {
-        ...state,
-        timer: { ...initState.timer, status: TimerStatus.STARTED, limit }
-      }
-    }
-    case ActionType.TIMER_COUNTDOWN: {
-      const { current } = action.payload
-      return {
-        ...state,
-        timer: { ...state.timer, current }
-      }
-    }
-    case ActionType.TIMER_FINISHED: {
-      return {
-        ...state,
-        timer: { ...state.timer, status: TimerStatus.FINISHED }
-      }
-    }
-    default:
-      return state
-  }
-}
-
-const VoteReducer: Reducer<State, Action> = (state, action) => {
-  switch (action.type) {
-    case ActionType.VOTE_START: {
-      return {
-        ...state,
-        votes: { ...initState.votes, status: VoteStatus.STARTED }
-      }
-    }
-    case ActionType.VOTE: {
-      const { from, to } = action.payload
-      return {
-        ...state,
-        votes: {
-          vote: { ...state.votes.vote, [from]: to },
-          status: state.votes.status
-        }
-      }
-    }
-    case ActionType.VOTE_FINISHED: {
-      return {
-        ...state,
-        votes: { vote: { ...state.votes.vote }, status: VoteStatus.FINISHED }
-      }
-    }
     default:
       return state
   }

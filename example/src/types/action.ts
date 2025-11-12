@@ -43,7 +43,12 @@ export type ToDaytimeAction = ActionBase<
     target: Identifier | undefined
   }
 >
-export type ToResultAction = ActionBase<typeof ActionType.TO_RESULT>
+export type ToResultAction = ActionBase<
+  typeof ActionType.TO_RESULT,
+  {
+    target: Identifier | undefined
+  }
+>
 export type TimerCountdownAction = ActionBase<
   typeof ActionType.TIMER_COUNTDOWN,
   { current: number }

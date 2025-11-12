@@ -5,7 +5,7 @@ import { ActionType } from '../types/action'
 import { Role, VoteStatus, type Identifier } from '../types/state'
 
 export const Daytime = () => {
-  const { state, dispatch, me, isHost } = useApp()
+  const { state, dispatch, me, host, isHost } = useApp()
 
   const [message, setMessage] = useState('')
 
@@ -17,18 +17,23 @@ export const Daytime = () => {
 
   const handleFinished = useCallback(() => {
     const grouped = Object.entries(state.votes.vote).reduce(
-      (a: Record<string, Identifier[]>, r, _i, _v, k = r[0]) => {
-        return (a[k] || (a[k] = [])).push(r[1]), a
+      (a: Record<Identifier, string[]>, r, _i, _v, k = r[1]) => {
+        return (a[k] || (a[k] = [])).push(r[0]), a
       },
       {}
     )
-    const target = Object.entries(grouped).reduce((a, b) => {
-      return a[1].length >= b[1].length ? a : b
-    })[0]
+    console.log('grouped', grouped)
+    const target = Object.entries(grouped).reduce(
+      (a, b) => {
+        return a[1].length > b[1].length ? a : b
+      },
+      ['', ['']]
+    )[0]
+    console.log('target', target)
     if (
       state.participants
         .filter((participant) => participant.id !== target)
-        .some((participant) => participant.role === Role.WEREWOLF) ||
+        .some((participant) => participant.role === Role.WEREWOLF) &&
       state.participants
         .filter((participant) => participant.id !== target)
         .some((participant) => participant.role !== Role.WEREWOLF)
@@ -42,7 +47,10 @@ export const Daytime = () => {
       return
     }
     dispatch({
-      type: ActionType.TO_RESULT
+      type: ActionType.TO_RESULT,
+      payload: {
+        target
+      }
     })
   }, [state.votes.vote, state.participants])
 
@@ -115,8 +123,12 @@ export const Daytime = () => {
   return (
     <>
       <h1>Daytime</h1>
+      <p>YourId: {new String(me)}</p>
+      <p>HostId: {new String(host)}</p>
+      <p>isHost: {new String(isHost)}</p>
       <p>{participant.name} さん</p>
       <p>あなたは {participant.role} です</p>
+      <p>{participant.living ? '生存' : '死亡'}</p>
       <p>残り {state.timer.current} 秒</p>
       <input
         type="text"
@@ -139,17 +151,20 @@ export const Daytime = () => {
             </Fragment>
           )
         })}
-      {state.votes.status === VoteStatus.STARTED &&
-        !state.votes.vote[me] &&
-        state.participants.map((participant) => {
-          const { id, name } = participant
-          return (
-            <Fragment key={`vote-${id}`}>
-              {name}
-              <button onClick={() => handleSendVote(id)}>この人が人狼</button>
-            </Fragment>
-          )
-        })}
+      <ul>
+        {state.votes.status === VoteStatus.STARTED &&
+          !state.votes.vote[me] &&
+          state.participants.map((participant) => {
+            const { id, name } = participant
+            return (
+              <li key={`vote-${id}`}>
+                {name}
+                <br />
+                <button onClick={() => handleSendVote(id)}>この人が人狼</button>
+              </li>
+            )
+          })}
+      </ul>
     </>
   )
 }

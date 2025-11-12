@@ -83,11 +83,19 @@ const DaytimeReducer: Reducer<State, Action> = (state, action) => {
       }
     }
     case ActionType.TO_RESULT: {
+      const { target } = action.payload
+      const nextParticipants = state.participants.map((participant) => {
+        if (participant.id === target) {
+          return { ...participant, living: false }
+        }
+        return { ...participant }
+      })
       return {
         ...state,
         page: Page.RESULT,
         timer: initState.timer,
-        votes: initState.votes
+        votes: initState.votes,
+        participants: nextParticipants
       }
     }
     case ActionType.TIMER_COUNTDOWN: {
@@ -141,11 +149,19 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
       }
     }
     case ActionType.TO_RESULT: {
+      const { target } = action.payload
+      const nextParticipants = state.participants.map((participant) => {
+        if (participant.id === target) {
+          return { ...participant, living: false }
+        }
+        return { ...participant }
+      })
       return {
         ...state,
         page: Page.RESULT,
         timer: initState.timer,
-        votes: initState.votes
+        votes: initState.votes,
+        participants: nextParticipants
       }
     }
     case ActionType.TIMER_COUNTDOWN: {

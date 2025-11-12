@@ -5,23 +5,28 @@ import { ActionType } from '../types/action'
 import { Role, VoteStatus, type Identifier } from '../types/state'
 
 export const Midnight = () => {
-  const { state, dispatch, me, isHost } = useApp()
+  const { state, dispatch, me, host, isHost } = useApp()
   const [message, setMessage] = useState('')
 
   const handleFinished = useCallback(() => {
     const grouped = Object.entries(state.votes.vote).reduce(
-      (a: Record<string, Identifier[]>, r, _i, _v, k = r[0]) => {
-        return (a[k] || (a[k] = [])).push(r[1]), a
+      (a: Record<Identifier, string[]>, r, _i, _v, k = r[1]) => {
+        return (a[k] || (a[k] = [])).push(r[0]), a
       },
       {}
     )
-    const target = Object.entries(grouped).reduce((a, b) => {
-      return a[1].length >= b[1].length ? a : b
-    })[0]
+    console.log('grouped', grouped)
+    const target = Object.entries(grouped).reduce(
+      (a, b) => {
+        return a[1].length > b[1].length ? a : b
+      },
+      ['', ['']]
+    )[0]
+    console.log('target', target)
     if (
       state.participants
         .filter((participant) => participant.id !== target)
-        .some((participant) => participant.role === Role.WEREWOLF) ||
+        .some((participant) => participant.role === Role.WEREWOLF) &&
       state.participants
         .filter((participant) => participant.id !== target)
         .some((participant) => participant.role !== Role.WEREWOLF)
@@ -35,7 +40,10 @@ export const Midnight = () => {
       return
     }
     dispatch({
-      type: ActionType.TO_RESULT
+      type: ActionType.TO_RESULT,
+      payload: {
+        target
+      }
     })
   }, [state.votes.vote, state.participants])
 
@@ -91,8 +99,12 @@ export const Midnight = () => {
   return (
     <>
       <h1>Midnight</h1>
+      <p>YourId: {new String(me)}</p>
+      <p>HostId: {new String(host)}</p>
+      <p>isHost: {new String(isHost)}</p>
       <p>{participant.name} さん</p>
       <p>あなたは {participant.role} です</p>
+      <p>{participant.living ? '生存' : '死亡'}</p>
       <p>残り {state.timer.current} 秒</p>
       {participant.role === Role.WEREWOLF && (
         <>
@@ -116,20 +128,23 @@ export const Midnight = () => {
               </Fragment>
             )
           })}
-          {state.votes.status === VoteStatus.STARTED &&
-            state.participants
-              .filter((participant) => participant.role !== Role.WEREWOLF)
-              .map((participant) => {
-                const { id, name } = participant
-                return (
-                  <Fragment key={`vote-${id}`}>
-                    {name} {state.votes.vote[me] === id && 'selected'}
-                    <button onClick={() => handleSendVote(id)}>
-                      この人を喰う
-                    </button>
-                  </Fragment>
-                )
-              })}
+          <ul>
+            {state.votes.status === VoteStatus.STARTED &&
+              state.participants
+                .filter((participant) => participant.role !== Role.WEREWOLF)
+                .map((participant) => {
+                  const { id, name } = participant
+                  return (
+                    <li key={`vote-${id}`}>
+                      {name} {state.votes.vote[me] === id && 'selected'}
+                      <br />
+                      <button onClick={() => handleSendVote(id)}>
+                        この人を喰う
+                      </button>
+                    </li>
+                  )
+                })}
+          </ul>
         </>
       )}
     </>

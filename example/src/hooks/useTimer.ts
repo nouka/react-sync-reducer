@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 interface TimerProps {
   initCount: number
-  onFinished?: () => void
+  onFinished: () => void
 }
 
 export const useTimer = ({ initCount, onFinished }: TimerProps) => {
@@ -34,27 +34,22 @@ export const useTimer = ({ initCount, onFinished }: TimerProps) => {
 
     cleanup()
     timerRef.current = setInterval(() => {
-      setCount((prev) => {
-        if (prev <= 0) {
-          setIsRunning(false)
-          return initCount
-        }
-        const next = prev - 1
-        return next
-      })
-      setIsRunning(false)
+      setCount((prev) => prev - 1)
     }, 1000)
 
     return () => cleanup()
   }, [isRunning, cleanup, initCount])
 
+  const effectReset = useEffectEvent(reset)
+  const effectFinished = useEffectEvent(onFinished)
   useEffect(() => {
     if (count <= 0) {
-      onFinished?.()
+      effectFinished()
+      effectReset()
       cleanup()
       return
     }
-  }, [count, onFinished, cleanup])
+  }, [count, cleanup])
 
   return { count, start, pause, reset }
 }

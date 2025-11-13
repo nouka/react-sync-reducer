@@ -1,36 +1,27 @@
-import { Fragment, useCallback, useEffect, useState } from 'react'
-import { useApp } from '../contexts/AppContext'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useState
+} from 'react'
+import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
 import { Role, VoteStatus, type Identifier } from '../types/state'
+import { getVotingResults, groupBy, isGameOver } from '../utils'
 
 export const Midnight = () => {
-  const { state, dispatch, me, host, isHost } = useApp()
+  const { state, dispatch, me, host, isHost, participant } = useApp()
   const [message, setMessage] = useState('')
+  const effectDispatch = useEffectEvent(dispatch)
 
   const handleFinished = useCallback(() => {
-    const grouped = Object.entries(state.votes.vote).reduce(
-      (a: Record<Identifier, string[]>, r, _i, _v, k = r[1]) => {
-        return (a[k] || (a[k] = [])).push(r[0]), a
-      },
-      {}
-    )
+    const grouped = groupBy(Object.entries(state.votes.vote), (item) => item[1])
     console.log('grouped', grouped)
-    const target = Object.entries(grouped).reduce(
-      (a, b) => {
-        return a[1].length > b[1].length ? a : b
-      },
-      ['', ['']]
-    )[0]
+    const target = getVotingResults(grouped)
     console.log('target', target)
-    if (
-      state.participants
-        .filter((participant) => participant.id !== target)
-        .some((participant) => participant.role === Role.WEREWOLF) &&
-      state.participants
-        .filter((participant) => participant.id !== target)
-        .some((participant) => participant.role !== Role.WEREWOLF)
-    ) {
+    if (!isGameOver(state.participants, target)) {
       dispatch({
         type: ActionType.TO_DAYTIME,
         payload: {
@@ -45,7 +36,7 @@ export const Midnight = () => {
         target
       }
     })
-  }, [state.votes.vote, state.participants])
+  }, [dispatch, state.participants, state.votes.vote])
 
   const { count, start } = useTimer({
     initCount: 10,
@@ -54,7 +45,7 @@ export const Midnight = () => {
 
   useEffect(() => {
     if (!isHost) return
-    dispatch({
+    effectDispatch({
       type: ActionType.TIMER_COUNTDOWN,
       payload: {
         current: count
@@ -64,15 +55,12 @@ export const Midnight = () => {
 
   useEffect(() => {
     if (!isHost) return
-    dispatch({
+    effectDispatch({
       type: ActionType.VOTE_START
     })
     start()
   }, [isHost, start])
 
-  const participant = state.participants.find(
-    (participant) => participant.id === me
-  )
   if (!participant) return null
 
   const handleSendMessage = () => {

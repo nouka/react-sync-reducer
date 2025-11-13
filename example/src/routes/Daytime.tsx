@@ -1,43 +1,34 @@
-import { Fragment, useCallback, useEffect, useState } from 'react'
-import { useApp } from '../contexts/AppContext'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useState
+} from 'react'
+import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
-import { Role, VoteStatus, type Identifier } from '../types/state'
+import { VoteStatus, type Identifier } from '../types/state'
+import { getVotingResults, groupBy, isGameOver } from '../utils'
 
 export const Daytime = () => {
-  const { state, dispatch, me, host, isHost } = useApp()
+  const { state, dispatch, me, host, isHost, participant } = useApp()
 
   const [message, setMessage] = useState('')
+  const effectDispatch = useEffectEvent(dispatch)
 
   const handleVoteStart = useCallback(() => {
     dispatch({
       type: ActionType.VOTE_START
     })
-  }, [])
+  }, [dispatch])
 
   const handleFinished = useCallback(() => {
-    const grouped = Object.entries(state.votes.vote).reduce(
-      (a: Record<Identifier, string[]>, r, _i, _v, k = r[1]) => {
-        return (a[k] || (a[k] = [])).push(r[0]), a
-      },
-      {}
-    )
+    const grouped = groupBy(Object.entries(state.votes.vote), (item) => item[1])
     console.log('grouped', grouped)
-    const target = Object.entries(grouped).reduce(
-      (a, b) => {
-        return a[1].length > b[1].length ? a : b
-      },
-      ['', ['']]
-    )[0]
+    const target = getVotingResults(grouped)
     console.log('target', target)
-    if (
-      state.participants
-        .filter((participant) => participant.id !== target)
-        .some((participant) => participant.role === Role.WEREWOLF) &&
-      state.participants
-        .filter((participant) => participant.id !== target)
-        .some((participant) => participant.role !== Role.WEREWOLF)
-    ) {
+    if (!isGameOver(state.participants, target)) {
       dispatch({
         type: ActionType.TO_NIGHT,
         payload: {
@@ -52,7 +43,7 @@ export const Daytime = () => {
         target
       }
     })
-  }, [state.votes.vote, state.participants])
+  }, [dispatch, state.participants, state.votes.vote])
 
   const discussionTimer = useTimer({
     initCount: 10,
@@ -65,7 +56,7 @@ export const Daytime = () => {
 
   useEffect(() => {
     if (!isHost) return
-    dispatch({
+    effectDispatch({
       type: ActionType.TIMER_COUNTDOWN,
       payload: {
         current: discussionTimer.count
@@ -75,7 +66,7 @@ export const Daytime = () => {
 
   useEffect(() => {
     if (!isHost) return
-    dispatch({
+    effectDispatch({
       type: ActionType.TIMER_COUNTDOWN,
       payload: {
         current: voteTimer.count
@@ -86,17 +77,14 @@ export const Daytime = () => {
   useEffect(() => {
     if (!isHost) return
     discussionTimer.start()
-  }, [isHost, discussionTimer.start])
+  }, [isHost, discussionTimer.start, discussionTimer])
 
   useEffect(() => {
     if (!isHost) return
     if (state.votes.status !== VoteStatus.STARTED) return
     voteTimer.start()
-  }, [isHost, state.votes.status])
+  }, [isHost, state.votes.status, voteTimer])
 
-  const participant = state.participants.find(
-    (participant) => participant.id === me
-  )
   if (!participant) return null
 
   const handleSendMessage = () => {

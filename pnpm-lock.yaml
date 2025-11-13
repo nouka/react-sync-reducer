@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      MyProjects:
-        specifier: link:..
-        version: link:..
       fast-safe-stringify:
         specifier: ^2.1.1
         version: 2.1.1

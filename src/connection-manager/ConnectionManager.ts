@@ -110,7 +110,7 @@ export class ConnectionManager {
    */
   private makeHandlers = (
     resolve: (value: ConnectionState | PromiseLike<ConnectionState>) => void,
-    reject: (reason?: any) => void
+    reject: (reason?: unknown) => void
   ) => {
     const handlers: ReceiveEventHandlers = new Set()
 
@@ -180,16 +180,17 @@ export class ConnectionManager {
             })
             return
           }
-          case 'answer':
+          case 'answer': {
             const conn = this.connections.get(sdp.id)
             if (!conn) return
             await conn.receiveAnswerFromPeer(sdp)
             socket.emit(SEND_EVENTS.COMPLETE)
             resolve(ConnectionState.CONNECTED)
             return
+          }
           default:
-            console.error('unkown sdp...')
-            reject('unkown sdp...')
+            console.error('unknown sdp...')
+            reject('unknown sdp...')
             return
         }
       }

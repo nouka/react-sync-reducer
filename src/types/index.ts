@@ -26,7 +26,7 @@ export const ActionType = {
 export type DeliveAction<T> = ActionBase<typeof ActionType.DELIVE, T>
 export type RequestAction<T> = ActionBase<typeof ActionType.REQUEST, T>
 
-export type State = { [key: string]: any } & { revision?: number }
+export type State = { [key: string]: unknown } & { revision?: number }
 
 export interface ISyncStateContext {
   connection: ConnectionManager

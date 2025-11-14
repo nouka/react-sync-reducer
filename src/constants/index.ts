@@ -32,7 +32,9 @@ export const DEFAULT_OPTIONS: ConnectionManagerOptions = {
     serverUrl: `localhost:9030`
   },
   connectionOptions: {
-    onIceCandidate: (_evt: RTCPeerConnectionIceEvent): void => {},
+    onIceCandidate: (_evt: RTCPeerConnectionIceEvent): void => {
+      void _evt
+    },
     peerConnectionOptions: {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     },

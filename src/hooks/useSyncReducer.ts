@@ -1,6 +1,6 @@
 import stringify from 'fast-safe-stringify'
 import React from 'react'
-import { SyncStateContext } from '../contexts/SyncStateProvider'
+import { SyncStateContext } from '../contexts/SyncStateContext'
 import { ActionBase, ActionType, State } from '../types'
 import { handleAction, isDeliveAction, isRequestAction } from '../utils'
 
@@ -11,7 +11,10 @@ import { handleAction, isDeliveAction, isRequestAction } from '../utils'
  * @param initState 初期ステート
  * @returns
  */
-export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
+export const useSyncReducer = <
+  T extends State,
+  A extends ActionBase<unknown, unknown>
+>(
   reducer: React.Reducer<T, A>,
   initState?: T
 ) => {
@@ -31,52 +34,6 @@ export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
   const revision = React.useRef<number>(0)
 
   /**
-   * データチャンネルのハンドラ登録
-   */
-  React.useEffect(() => {
-    const handler = isHost ? hostHandler : clientHandler
-    const unsubscribe = connection.receiver.onMessage(handler)
-    return () => unsubscribe()
-  }, [isHost, connection.receiver])
-
-  /**
-   * 状態データ変更時の処理
-   * State のリビジョン番号を Ref に保存し、比較に利用します。
-   * ホストの場合は DELIVE イベントを発行し、他のユーザーに State を配布します。
-   */
-  React.useEffect(() => {
-    console.debug('sync state:', state)
-    revision.current = state.revision ?? 0
-    isHost &&
-      connection.sender.broadcast(
-        stringify({
-          type: ActionType.DELIVE,
-          payload: state
-        })
-      )
-  }, [state])
-
-  /**
-   * アクションのディスパッチャ
-   * ホストは単に自分自身の State を変更します。
-   * クライアントはデータチャンネル経由でアクションをリクエストします。
-   *
-   * @param action アクション
-   */
-  const dispatchAction = (action: A) => {
-    isHost
-      ? dispatch(action)
-      : connection.host &&
-        connection.sender.sendTo(
-          connection.host,
-          stringify({
-            type: ActionType.REQUEST,
-            payload: action
-          })
-        )
-  }
-
-  /**
    * データチャンネルのメッセージハンドラ
    * ホストがクライアントから REQUEST アクションを受け取った場合は、dispatch を実行し State を更新します。
    *
@@ -84,7 +41,7 @@ export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
    *
    * @returns
    */
-  const hostHandler = async (message: string) => {
+  const hostHandler = React.useCallback(async (message: string) => {
     const action = JSON.parse(message)
 
     // REQUEST
@@ -92,7 +49,7 @@ export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
       dispatch(action.payload as A)
       return
     }
-  }
+  }, [])
 
   /**
    * データチャンネルのメッセージハンドラ
@@ -102,7 +59,7 @@ export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
    *
    * @returns
    */
-  const clientHandler = async (message: string) => {
+  const clientHandler = React.useCallback(async (message: string) => {
     const action = JSON.parse(message)
 
     // DELIVE
@@ -112,7 +69,58 @@ export const useSyncReducer = <T extends State, A extends ActionBase<any, any>>(
       dispatch(action as A)
       return
     }
-  }
+  }, [])
+
+  /**
+   * データチャンネルのハンドラ登録
+   */
+  React.useEffect(() => {
+    const handler = isHost ? hostHandler : clientHandler
+    const unsubscribe = connection.receiver.onMessage(handler)
+    return () => unsubscribe()
+  }, [isHost, connection.receiver, hostHandler, clientHandler])
+
+  /**
+   * 状態データ変更時の処理
+   * State のリビジョン番号を Ref に保存し、比較に利用します。
+   * ホストの場合は DELIVE イベントを発行し、他のユーザーに State を配布します。
+   */
+  React.useEffect(() => {
+    console.debug('sync state:', state)
+    revision.current = state.revision ?? 0
+    if (isHost) {
+      connection.sender.broadcast(
+        stringify({
+          type: ActionType.DELIVE,
+          payload: state
+        })
+      )
+    }
+  }, [connection.sender, isHost, state])
+
+  /**
+   * アクションのディスパッチャ
+   * ホストは単に自分自身の State を変更します。
+   * クライアントはデータチャンネル経由でアクションをリクエストします。
+   *
+   * @param action アクション
+   */
+  const dispatchAction = React.useCallback(
+    (action: A) => {
+      if (isHost) {
+        dispatch(action)
+      } else if (connection.host) {
+        connection.sender.sendTo(
+          connection.host,
+          stringify({
+            type: ActionType.REQUEST,
+            payload: action
+          })
+        )
+      }
+    },
+    [connection.host, connection.sender, isHost]
+  )
 
   const { me, host } = connection
   return {

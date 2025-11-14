@@ -63,7 +63,7 @@ export class WebRTCConnection implements Connection {
   public receiveOfferFromPeer = async (
     sdp: RTCSessionDescription & { id: Identifier }
   ) => {
-    let offer = new RTCSessionDescription(sdp)
+    const offer = new RTCSessionDescription(sdp)
     try {
       await this.peerConnection.setRemoteDescription(offer)
       console.debug('setRemoteDescription() succeeded.')
@@ -98,7 +98,7 @@ export class WebRTCConnection implements Connection {
   public receiveAnswerFromPeer = async (
     sdp: RTCSessionDescription & { id: Identifier }
   ) => {
-    let answer = new RTCSessionDescription(sdp)
+    const answer = new RTCSessionDescription(sdp)
     try {
       await this.peerConnection.setRemoteDescription(answer)
       console.debug('setRemoteDescription() succeeded.')
@@ -127,7 +127,7 @@ export class WebRTCConnection implements Connection {
    */
   private createPeerConnection = () => {
     const { onIceCandidate, peerConnectionOptions } = this.options
-    let pc = new RTCPeerConnection(peerConnectionOptions)
+    const pc = new RTCPeerConnection(peerConnectionOptions)
 
     // ICE candidate 取得時のイベントハンドラを登録
     pc.onicecandidate = async (evt) => {
@@ -147,6 +147,7 @@ export class WebRTCConnection implements Connection {
     }
 
     pc.onconnectionstatechange = async (_evt) => {
+      void _evt
       switch (pc.connectionState) {
         case 'connected':
           console.debug('connected')

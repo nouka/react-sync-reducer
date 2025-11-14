@@ -1,12 +1,8 @@
 import * as React from 'react'
 import { ConnectionManager } from '../connection-manager/ConnectionManager'
 import { ConnectionState } from '../constants'
-import { ISyncStateContext, SyncStateProps } from '../types'
-
-/**
- * Connection を共有するためのコンテキスト
- */
-export const SyncStateContext = React.createContext({} as ISyncStateContext)
+import { SyncStateProps } from '../types'
+import { SyncStateContext } from './SyncStateContext'
 
 /**
  * Connection を提供するプロバイダ
@@ -37,7 +33,7 @@ export const SyncStateProvider: React.FC<
       setConnection(null)
       isBooted.current = false
     }
-  }, [])
+  }, [options])
 
   React.useEffect(() => {
     ;(async () => {

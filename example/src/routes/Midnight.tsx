@@ -1,12 +1,19 @@
-import { Fragment, useCallback, useEffect, useEffectEvent } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useState
+} from 'react'
 import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
-import { Role, VoteStatus, type Identifier } from '../types/state'
+import { Role, type Identifier } from '../types/state'
 import { getVotingResults, groupBy, isGameOver } from '../utils'
 
 export const Midnight = () => {
   const { state, dispatch, me, host, isHost, participant } = useApp()
+  const [showRoleTarget, setShowRoleTarget] = useState<Identifier>()
   const effectDispatch = useEffectEvent(dispatch)
 
   const handleFinished = useCallback(() => {
@@ -66,6 +73,13 @@ export const Midnight = () => {
     })
   }
 
+  const handleShowRole = (id: Identifier) => {
+    setShowRoleTarget(id)
+  }
+
+  const imWerewolf = participant.role === Role.WEREWOLF
+  const imFortuneTeller = participant.role === Role.FORTUNE_TELLER
+
   return (
     <>
       <h1>Midnight</h1>
@@ -76,32 +90,45 @@ export const Midnight = () => {
       <p>あなたは {participant.role} です</p>
       <p>{participant.living ? '生存' : '死亡'}</p>
       <p>残り {state.timer.current} 秒</p>
-      {participant.role === Role.WEREWOLF && (
-        <>
-          <ul>
-            {state.votes.status === VoteStatus.STARTED &&
-              state.participants
-                .filter((participant) => participant.role !== Role.WEREWOLF)
-                .map((participant) => {
-                  const { id, name } = participant
-                  return (
-                    <li key={`vote-${id}`}>
-                      {name} {state.votes.vote[me] === id && 'selected'}
-                      <br />
-                      <button onClick={() => handleSendVote(id)}>
-                        この人を喰う
-                      </button>
-                    </li>
-                  )
-                })}
-          </ul>
-        </>
+      {imWerewolf && (
+        <ul>
+          {state.participants
+            .filter((participant) => participant.role !== Role.WEREWOLF)
+            .map((participant) => {
+              const { id, name } = participant
+              return (
+                <li key={`vote-${id}`}>
+                  {name} {state.votes.vote[me] === id && 'selected'}
+                  <br />
+                  <button onClick={() => handleSendVote(id)}>
+                    この人を喰う
+                  </button>
+                </li>
+              )
+            })}
+        </ul>
+      )}
+      {imFortuneTeller && (
+        <ul>
+          {state.participants.map((participant) => {
+            const { id, name } = participant
+            return (
+              <li key={`show-role-${id}`}>
+                {name}
+                <br />
+                <button onClick={() => handleShowRole(id)}>この人を占う</button>
+              </li>
+            )
+          })}
+        </ul>
       )}
       {state.participants.map((participant) => {
         return (
           <Fragment key={participant.id}>
             <p>name: {participant.name}</p>
             <p>id: {participant.id}</p>
+            {((imWerewolf && participant.role === Role.WEREWOLF) ||
+              showRoleTarget === participant.id) && <p>{participant.role}</p>}
             <p>{participant.living ? 'living' : 'dead'}</p>
           </Fragment>
         )

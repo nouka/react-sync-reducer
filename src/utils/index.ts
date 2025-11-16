@@ -30,7 +30,9 @@ export const isDeliveAction = <S extends State>(
  *
  * @returns boolean
  */
-export const isRequestAction = <A extends ActionBase<unknown, unknown>>(
+export const isRequestAction = <
+  A extends ActionBase<unknown, unknown> | ActionBase<unknown>
+>(
   action: unknown
 ): action is RequestAction<A> => {
   if (!action || typeof action !== 'object' || !('type' in action)) return false
@@ -48,7 +50,10 @@ export const isRequestAction = <A extends ActionBase<unknown, unknown>>(
  * @returns Reducer
  */
 export const handleAction =
-  <S extends State, A extends ActionBase<unknown, unknown>>(
+  <
+    S extends State,
+    A extends ActionBase<unknown, unknown> | ActionBase<unknown>
+  >(
     reducer: Reducer<S, A>
   ): Reducer<S, A> =>
   (state: S, action: A): S => {

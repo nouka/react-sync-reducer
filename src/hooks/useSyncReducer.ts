@@ -13,7 +13,7 @@ import { handleAction, isDeliveAction, isRequestAction } from '../utils'
  */
 export const useSyncReducer = <
   T extends State,
-  A extends ActionBase<unknown, unknown>
+  A extends ActionBase<unknown> | ActionBase<unknown, unknown>
 >(
   reducer: React.Reducer<T, A>,
   initState?: T
@@ -66,7 +66,7 @@ export const useSyncReducer = <
     if (isDeliveAction<{ revision: number | undefined }>(action)) {
       // リビジョン番号を比較
       if (revision.current >= (action.payload?.revision ?? 0)) return
-      dispatch(action as A)
+      dispatch(action as unknown as A)
       return
     }
   }, [])

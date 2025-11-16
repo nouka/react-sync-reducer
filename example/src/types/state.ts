@@ -40,10 +40,6 @@ export type State = {
     id: Identifier
     message: string
   }[]
-  privateMessages: {
-    id: Identifier
-    message: string
-  }[]
 }
 
 export const initState: State = {
@@ -56,6 +52,5 @@ export const initState: State = {
     status: VoteStatus.INITIALIZED,
     vote: {}
   },
-  publicMessages: [],
-  privateMessages: []
+  publicMessages: []
 }

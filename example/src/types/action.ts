@@ -15,8 +15,7 @@ export const ActionType = {
   DISCUSSION_START: 'example/DISCUSSION_START',
   VOTE_START: 'example/VOTE_START',
   VOTE: 'example/VOTE',
-  PUBLIC_MESSAGE: 'example/PUBLIC_MESSAGE',
-  PRIVATE_MESSAGE: 'example/PRIVATE_MESSAGE'
+  PUBLIC_MESSAGE: 'example/PUBLIC_MESSAGE'
 } as const
 
 /**
@@ -71,13 +70,6 @@ export type PublicMessageAction = ActionBase<
     message: string
   }
 >
-export type PrivateMessageAction = ActionBase<
-  typeof ActionType.PRIVATE_MESSAGE,
-  {
-    id: Identifier
-    message: string
-  }
->
 
 export type Action =
   | EntryAction
@@ -91,4 +83,3 @@ export type Action =
   | VoteStartAction
   | VoteAction
   | PublicMessageAction
-  | PrivateMessageAction

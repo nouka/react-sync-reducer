@@ -1,10 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useState
-} from 'react'
+import { useCallback, useEffect, useEffectEvent } from 'react'
 import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
@@ -13,7 +7,6 @@ import { getVotingResults, groupBy, isGameOver } from '../utils'
 
 export const Midnight = () => {
   const { state, dispatch, me, host, isHost, participant } = useApp()
-  const [message, setMessage] = useState('')
   const effectDispatch = useEffectEvent(dispatch)
 
   const handleFinished = useCallback(() => {
@@ -63,17 +56,6 @@ export const Midnight = () => {
 
   if (!participant) return null
 
-  const handleSendMessage = () => {
-    dispatch({
-      type: ActionType.PRIVATE_MESSAGE,
-      payload: {
-        id: me,
-        message
-      }
-    })
-    setMessage('')
-  }
-
   const handleSendVote = (id: Identifier) => {
     dispatch({
       type: ActionType.VOTE,
@@ -96,26 +78,6 @@ export const Midnight = () => {
       <p>残り {state.timer.current} 秒</p>
       {participant.role === Role.WEREWOLF && (
         <>
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button onClick={handleSendMessage}>Send Public Message</button>
-          {state.privateMessages.map((privateMessage) => {
-            const { id, message } = privateMessage
-            const participant = state.participants.find(
-              (participant) => participant.id === id
-            )
-            if (!participant) return null
-            const { name } = participant
-            return (
-              <Fragment key={`private-message-${id}`}>
-                <p>{name}</p>
-                <p>{message}</p>
-              </Fragment>
-            )
-          })}
           <ul>
             {state.votes.status === VoteStatus.STARTED &&
               state.participants

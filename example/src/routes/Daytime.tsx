@@ -153,6 +153,15 @@ export const Daytime = () => {
             )
           })}
       </ul>
+      {state.participants.map((participant) => {
+        return (
+          <Fragment key={participant.id}>
+            <p>name: {participant.name}</p>
+            <p>id: {participant.id}</p>
+            <p>{participant.living ? 'living' : 'dead'}</p>
+          </Fragment>
+        )
+      })}
     </>
   )
 }

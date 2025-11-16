@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useApp } from '../contexts/app-hooks'
 import { Role } from '../types/state'
 import { getWinner } from '../utils'
@@ -16,6 +17,15 @@ export const Result = () => {
       <p>あなたは {participant.role} です</p>
       <p>{participant.living ? '生存' : '死亡'}</p>
       {winner === Role.WEREWOLF ? <p>人狼の勝利</p> : <p>村人の勝利</p>}
+      {state.participants.map((participant) => {
+        return (
+          <Fragment key={participant.id}>
+            <p>name: {participant.name}</p>
+            <p>id: {participant.id}</p>
+            <p>{participant.living ? 'living' : 'dead'}</p>
+          </Fragment>
+        )
+      })}
     </>
   )
 }

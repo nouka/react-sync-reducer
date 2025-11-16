@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useApp } from '../contexts/app-hooks'
 import { ActionType } from '../types/action'
 import { Role } from '../types/state'
@@ -73,6 +73,15 @@ export const Intro = () => {
           </>
         )
       })()}
+      {state.participants.map((participant) => {
+        return (
+          <Fragment key={participant.id}>
+            <p>name: {participant.name}</p>
+            <p>id: {participant.id}</p>
+            <p>{participant.living ? 'living' : 'dead'}</p>
+          </Fragment>
+        )
+      })}
     </>
   )
 }

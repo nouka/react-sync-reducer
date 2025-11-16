@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent } from 'react'
+import { Fragment, useCallback, useEffect, useEffectEvent } from 'react'
 import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
@@ -97,6 +97,15 @@ export const Midnight = () => {
           </ul>
         </>
       )}
+      {state.participants.map((participant) => {
+        return (
+          <Fragment key={participant.id}>
+            <p>name: {participant.name}</p>
+            <p>id: {participant.id}</p>
+            <p>{participant.living ? 'living' : 'dead'}</p>
+          </Fragment>
+        )
+      })}
     </>
   )
 }

@@ -7,17 +7,17 @@ import { Midnight } from './routes/Midnight'
 import { Result } from './routes/Result'
 import { Page } from './types/state'
 
-export const Root = () => {
+export const App = () => {
   return (
     <SyncStateProvider>
       <AppProvider>
-        <App />
+        <Route />
       </AppProvider>
     </SyncStateProvider>
   )
 }
 
-const App = () => {
+const Route = () => {
   const { state } = useApp()
   switch (state.page) {
     case Page.INTRO:

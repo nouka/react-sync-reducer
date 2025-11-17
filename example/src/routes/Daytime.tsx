@@ -44,11 +44,11 @@ export const Daytime = () => {
   }, [dispatch, state.participants, state.votes.vote])
 
   const discussionTimer = useTimer({
-    initCount: 100,
+    initCount: 30,
     onFinished: handleVoteStart
   })
   const voteTimer = useTimer({
-    initCount: 100,
+    initCount: 30,
     onFinished: handleFinished
   })
 

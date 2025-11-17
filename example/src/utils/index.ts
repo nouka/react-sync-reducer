@@ -12,7 +12,7 @@ export const shuffle = <T>(array: T[]) => {
 export const prepareRoles = (
   participants: Pick<State, 'participants'>['participants']
 ) => {
-  const r = [Role.VILLAGER, Role.FORTUNE_TELLER, Role.WEREWOLF]
+  const r = [Role.VILLAGER, Role.SEER, Role.WEREWOLF]
   const remain = Math.max(participants.length - r.length, 0)
   for (let i = 0; i < remain; i++) {
     r.push((i + 1) % 4 === 0 ? Role.WEREWOLF : Role.VILLAGER)

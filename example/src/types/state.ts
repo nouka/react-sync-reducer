@@ -13,7 +13,7 @@ export const Page = {
 export const Role = {
   VILLAGER: 'VILLAGER',
   WEREWOLF: 'WEREWOLF',
-  FORTUNE_TELLER: 'FORTUNE_TELLER'
+  SEER: 'SEER'
 } as const
 
 export const VoteStatus = {

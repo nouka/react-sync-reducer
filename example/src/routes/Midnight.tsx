@@ -37,7 +37,7 @@ export const Midnight = () => {
   }, [dispatch, state.participants, state.votes.vote])
 
   const { count, start } = useTimer({
-    initCount: 10,
+    initCount: 30,
     onFinished: handleFinished
   })
 
@@ -76,7 +76,7 @@ export const Midnight = () => {
   }
 
   const imWerewolf = participant.role === Role.WEREWOLF
-  const imFortuneTeller = participant.role === Role.FORTUNE_TELLER
+  const imSeer = participant.role === Role.SEER
 
   return (
     <PageWrapper>
@@ -113,7 +113,7 @@ export const Midnight = () => {
               })}
           </ul>
         )}
-        {imFortuneTeller && (
+        {imSeer && (
           <ul>
             {state.participants.map((participant) => {
               const { id, name } = participant

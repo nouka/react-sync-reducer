@@ -49,10 +49,17 @@ io.on('connection', (socket) => {
    * 入室イベント
    */
   socket.on('ENTER', function (roomname) {
+    const isHost = socket.adapter.rooms.get(roomname) ? false : true
     socket.join(roomname)
-    console.log('id=' + socket.id + ' enter room:' + roomname)
+    console.log(
+      'id=' + socket.id + ' enter room:' + roomname + ' isHost: ' + isHost
+    )
     socket.roomname = roomname
-    if (!socket.adapter.rooms.get(roomname)) return
+    socket.isHost = isHost
+    if (isHost) {
+      socket.emit('YOU_HOST')
+      return
+    }
     socket.broadcast.to(socket.roomname).emit('JOINED', { id: socket.id })
   })
 
@@ -69,7 +76,6 @@ io.on('connection', (socket) => {
    */
   socket.on('SDP', function (data) {
     data.sdp.id = socket.id
-    data.sdp.isHost = data.isHost
     if (data.target) {
       socket.to(data.target).emit('SDP', data.sdp)
     } else {
@@ -90,9 +96,11 @@ io.on('connection', (socket) => {
   })
 
   /**
-   * GAMEの実行
+   * 完了
    */
   socket.on('COMPLETE', function () {
-    socket.broadcast.to(socket.roomname).emit('COMPLETED')
+    socket.broadcast
+      .to(socket.roomname)
+      .emit('COMPLETED', socket.isHost && { hostId: socket.id })
   })
 })

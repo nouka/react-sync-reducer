@@ -41,6 +41,9 @@ export default class SocketBuilder {
           if (type === RECEIVE_EVENTS.CONNECTED) {
             return handler(socket, resolve, data)
           }
+          if (type === RECEIVE_EVENTS.YOU_HOST) {
+            return handler()
+          }
           if (
             type === RECEIVE_EVENTS.DISCONNECTED ||
             type === RECEIVE_EVENTS.CANDIDATE ||

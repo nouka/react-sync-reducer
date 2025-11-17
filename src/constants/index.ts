@@ -12,6 +12,7 @@ export type ConnectionState =
 export const RECEIVE_EVENTS = {
   CONNECTED: 'CONNECTED',
   DISCONNECTED: 'DISCONNECTED',
+  YOU_HOST: 'YOU_HOST',
   JOINED: 'JOINED',
   SDP: 'SDP',
   CANDIDATE: 'CANDIDATE',

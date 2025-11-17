@@ -20,9 +20,8 @@ export const SyncStateProvider: React.FC<
     if (isBooted.current) return
     isBooted.current = true
 
-    const { isHost, ...rest } = options
-    const connection = new ConnectionManager(rest)
-    const connectionState = await connection.connect(isHost)
+    const connection = new ConnectionManager(options)
+    const connectionState = await connection.connect()
     console.debug('connectionState=', connectionState)
     if (connectionState === ConnectionState.CONNECTED) {
       setConnection(connection)
@@ -45,7 +44,7 @@ export const SyncStateProvider: React.FC<
   if (!connection) return null
 
   return (
-    <SyncStateContext.Provider value={{ connection, isHost: options.isHost }}>
+    <SyncStateContext.Provider value={{ connection }}>
       {children}
     </SyncStateContext.Provider>
   )

@@ -18,7 +18,7 @@ export const useSyncReducer = <
   reducer: React.Reducer<T, A>,
   initState?: T
 ) => {
-  const { connection, isHost } = React.useContext(SyncStateContext)
+  const { connection } = React.useContext(SyncStateContext)
 
   /**
    * Reducer
@@ -75,10 +75,10 @@ export const useSyncReducer = <
    * データチャンネルのハンドラ登録
    */
   React.useEffect(() => {
-    const handler = isHost ? hostHandler : clientHandler
+    const handler = connection.isHost ? hostHandler : clientHandler
     const unsubscribe = connection.receiver.onMessage(handler)
     return () => unsubscribe()
-  }, [isHost, connection.receiver, hostHandler, clientHandler])
+  }, [connection.receiver, hostHandler, clientHandler, connection.isHost])
 
   /**
    * 状態データ変更時の処理
@@ -88,7 +88,7 @@ export const useSyncReducer = <
   React.useEffect(() => {
     console.debug('sync state:', state)
     revision.current = state.revision ?? 0
-    if (isHost) {
+    if (connection.isHost) {
       connection.sender.broadcast(
         stringify({
           type: ActionType.DELIVE,
@@ -96,7 +96,7 @@ export const useSyncReducer = <
         })
       )
     }
-  }, [connection.sender, isHost, state])
+  }, [connection.isHost, connection.sender, state])
 
   /**
    * アクションのディスパッチャ
@@ -107,7 +107,7 @@ export const useSyncReducer = <
    */
   const dispatchAction = React.useCallback(
     (action: A) => {
-      if (isHost) {
+      if (connection.isHost) {
         dispatch(action)
       } else if (connection.host) {
         connection.sender.sendTo(
@@ -119,10 +119,10 @@ export const useSyncReducer = <
         )
       }
     },
-    [connection.host, connection.sender, isHost]
+    [connection.host, connection.isHost, connection.sender]
   )
 
-  const { me, host } = connection
+  const { me, host, isHost } = connection
   return {
     state,
     dispatch: dispatchAction,

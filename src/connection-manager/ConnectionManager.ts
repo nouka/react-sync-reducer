@@ -70,7 +70,7 @@ export class ConnectionManager {
    *
    * @returns
    */
-  public connect = async (isHost: boolean): Promise<ConnectionState> => {
+  public connect = async (): Promise<ConnectionState> => {
     const { socketBuilderOptions, roomName } = this.options
     return new Promise<ConnectionState>((resolve, reject) => {
       SocketBuilder.registerHandlers(this.makeHandlers(resolve, reject))
@@ -79,9 +79,6 @@ export class ConnectionManager {
           this.socket = socket
           this.id = id
           console.debug('connected to signaling server. my id=', this.id)
-          if (isHost) {
-            this.hostId = id
-          }
 
           // 自動的にJOIN
           socket.emit(SEND_EVENTS.ENTER, roomName)
@@ -131,6 +128,14 @@ export class ConnectionManager {
       }
     })
 
+    // ホストの通知を受け取ったとき
+    handlers.add({
+      type: RECEIVE_EVENTS.YOU_HOST,
+      handler: () => {
+        this.hostId = this.id
+      }
+    })
+
     // Join Roomを受け付けてオファーを作成し送り返す
     handlers.add({
       type: RECEIVE_EVENTS.JOINED,
@@ -170,13 +175,9 @@ export class ConnectionManager {
             })
             const peerConnection = await conn.receiveOfferFromPeer(sdp)
             if (!peerConnection) return
-            if (sdp.isHost) {
-              this.hostId = sdp.id
-            }
             socket.emit(SEND_EVENTS.SDP, {
               target: sdp.id,
-              sdp: peerConnection.localDescription,
-              isHost: false
+              sdp: peerConnection.localDescription
             })
             return
           }
@@ -207,10 +208,11 @@ export class ConnectionManager {
       }
     })
 
-    // ホストのゲーム開始を受けて、クライアントがゲームを起動する処理
+    // 接続相手からの完了通知
     handlers.add({
       type: RECEIVE_EVENTS.COMPLETED,
-      handler: () => {
+      handler: ({ hostId }) => {
+        if (hostId) this.hostId = hostId
         resolve(ConnectionState.CONNECTED)
       }
     })
@@ -278,5 +280,8 @@ export class ConnectionManager {
   }
   get me() {
     return this.id
+  }
+  get isHost() {
+    return this.id === this.hostId
   }
 }

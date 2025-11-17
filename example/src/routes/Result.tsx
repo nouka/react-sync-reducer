@@ -1,4 +1,7 @@
-import { Fragment } from 'react'
+import { Debug } from '../components/Debug'
+import { PageTitle } from '../components/PageTitle'
+import { PageWrapper } from '../components/PageWrapper'
+import { Participants } from '../components/Participants'
 import { useApp } from '../contexts/app-hooks'
 import { Role } from '../types/state'
 import { getWinner } from '../utils'
@@ -8,24 +11,13 @@ export const Result = () => {
   if (!participant) return null
   const winner = getWinner(state.participants)
   return (
-    <>
-      <h1>Result</h1>
-      <p>YourId: {new String(me)}</p>
-      <p>HostId: {new String(host)}</p>
-      <p>isHost: {new String(isHost)}</p>
-      <p>{participant.name} さん</p>
-      <p>あなたは {participant.role} です</p>
-      <p>{participant.living ? '生存' : '死亡'}</p>
-      {winner === Role.WEREWOLF ? <p>人狼の勝利</p> : <p>村人の勝利</p>}
-      {state.participants.map((participant) => {
-        return (
-          <Fragment key={participant.id}>
-            <p>name: {participant.name}</p>
-            <p>id: {participant.id}</p>
-            <p>{participant.living ? 'living' : 'dead'}</p>
-          </Fragment>
-        )
-      })}
-    </>
+    <PageWrapper>
+      <PageTitle label="結果" />
+      <Debug me={me} host={host} isHost={isHost} />
+      <p className="text-center text-2xl mb-4 rounded-full bg-gray-200 p-4">
+        {winner === Role.WEREWOLF ? '人狼の勝利' : '村人の勝利'}
+      </p>
+      <Participants participants={state.participants} me={me} />
+    </PageWrapper>
   )
 }

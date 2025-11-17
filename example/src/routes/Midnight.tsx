@@ -1,10 +1,8 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useState
-} from 'react'
+import { useCallback, useEffect, useEffectEvent, useState } from 'react'
+import { Debug } from '../components/Debug'
+import { PageTitle } from '../components/PageTitle'
+import { PageWrapper } from '../components/PageWrapper'
+import { Participants } from '../components/Participants'
 import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
@@ -81,58 +79,70 @@ export const Midnight = () => {
   const imFortuneTeller = participant.role === Role.FORTUNE_TELLER
 
   return (
-    <>
-      <h1>Midnight</h1>
-      <p>YourId: {new String(me)}</p>
-      <p>HostId: {new String(host)}</p>
-      <p>isHost: {new String(isHost)}</p>
-      <p>{participant.name} さん</p>
-      <p>あなたは {participant.role} です</p>
-      <p>{participant.living ? '生存' : '死亡'}</p>
-      <p>残り {state.timer.current} 秒</p>
-      {imWerewolf && (
-        <ul>
-          {state.participants
-            .filter((participant) => participant.role !== Role.WEREWOLF)
-            .map((participant) => {
+    <PageWrapper>
+      <PageTitle label="夜：人狼が村人を襲います" />
+      <Debug me={me} host={host} isHost={isHost} />
+      <div className="p-4 bg-gray-200 rounded">
+        <p>残り {state.timer.current} 秒</p>
+        {imWerewolf && (
+          <ul>
+            {state.participants
+              .filter((participant) => participant.role !== Role.WEREWOLF)
+              .map((participant) => {
+                const { id, name } = participant
+                return (
+                  <li
+                    key={`vote-${id}`}
+                    className="flex justify-between align-middle mb-2"
+                  >
+                    <p
+                      className={
+                        state.votes.vote[me] === id ? 'text-red-800' : ''
+                      }
+                    >
+                      {name} さん
+                    </p>
+                    <button
+                      onClick={() => handleSendVote(id)}
+                      className="bg-blue-700 text-white rounded px-4"
+                    >
+                      この人を喰う
+                    </button>
+                  </li>
+                )
+              })}
+          </ul>
+        )}
+        {imFortuneTeller && (
+          <ul>
+            {state.participants.map((participant) => {
               const { id, name } = participant
               return (
-                <li key={`vote-${id}`}>
-                  {name} {state.votes.vote[me] === id && 'selected'}
-                  <br />
-                  <button onClick={() => handleSendVote(id)}>
-                    この人を喰う
+                <li
+                  key={`show-role-${id}`}
+                  className="flex justify-between align-middle mb-2"
+                >
+                  <p className="">{name} さん</p>
+                  <button
+                    onClick={() => handleShowRole(id)}
+                    className="bg-blue-700 text-white rounded px-4"
+                  >
+                    この人を占う
                   </button>
                 </li>
               )
             })}
-        </ul>
-      )}
-      {imFortuneTeller && (
-        <ul>
-          {state.participants.map((participant) => {
-            const { id, name } = participant
-            return (
-              <li key={`show-role-${id}`}>
-                {name}
-                <br />
-                <button onClick={() => handleShowRole(id)}>この人を占う</button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      {state.participants.map((participant) => {
-        return (
-          <Fragment key={participant.id}>
-            <p>name: {participant.name}</p>
-            <p>id: {participant.id}</p>
-            {((imWerewolf && participant.role === Role.WEREWOLF) ||
-              showRoleTarget === participant.id) && <p>{participant.role}</p>}
-            <p>{participant.living ? 'living' : 'dead'}</p>
-          </Fragment>
-        )
-      })}
-    </>
+          </ul>
+        )}
+      </div>
+      <Participants
+        participants={state.participants}
+        me={me}
+        showRole={
+          (imWerewolf && participant.role === Role.WEREWOLF) ||
+          showRoleTarget === participant.id
+        }
+      />
+    </PageWrapper>
   )
 }

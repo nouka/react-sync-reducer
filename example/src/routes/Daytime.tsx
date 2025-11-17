@@ -1,10 +1,8 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useState
-} from 'react'
+import { useCallback, useEffect, useEffectEvent, useState } from 'react'
+import { Debug } from '../components/Debug'
+import { PageTitle } from '../components/PageTitle'
+import { PageWrapper } from '../components/PageWrapper'
+import { Participants } from '../components/Participants'
 import { useApp } from '../contexts/app-hooks'
 import { useTimer } from '../hooks/useTimer'
 import { ActionType } from '../types/action'
@@ -46,11 +44,11 @@ export const Daytime = () => {
   }, [dispatch, state.participants, state.votes.vote])
 
   const discussionTimer = useTimer({
-    initCount: 10,
+    initCount: 100,
     onFinished: handleVoteStart
   })
   const voteTimer = useTimer({
-    initCount: 10,
+    initCount: 100,
     onFinished: handleFinished
   })
 
@@ -109,59 +107,73 @@ export const Daytime = () => {
   }
 
   return (
-    <>
-      <h1>Daytime</h1>
-      <p>YourId: {new String(me)}</p>
-      <p>HostId: {new String(host)}</p>
-      <p>isHost: {new String(isHost)}</p>
-      <p>{participant.name} さん</p>
-      <p>あなたは {participant.role} です</p>
-      <p>{participant.living ? '生存' : '死亡'}</p>
-      <p>残り {state.timer.current} 秒</p>
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
-      <button onClick={handleSendMessage}>Send Public Message</button>
-      {state.votes.status === VoteStatus.INITIALIZED &&
-        state.publicMessages.map((publicMessage) => {
-          const { id, message } = publicMessage
-          const participant = state.participants.find(
-            (participant) => participant.id === id
-          )
-          if (!participant) return null
-          const { name } = participant
-          return (
-            <Fragment key={`public-message-${id}`}>
-              <p>{name}</p>
-              <p>{message}</p>
-            </Fragment>
-          )
-        })}
-      <ul>
-        {state.votes.status === VoteStatus.STARTED &&
-          !state.votes.vote[me] &&
-          state.participants.map((participant) => {
-            const { id, name } = participant
-            return (
-              <li key={`vote-${id}`}>
-                {name}
-                <br />
-                <button onClick={() => handleSendVote(id)}>この人が人狼</button>
-              </li>
-            )
-          })}
-      </ul>
-      {state.participants.map((participant) => {
-        return (
-          <Fragment key={participant.id}>
-            <p>name: {participant.name}</p>
-            <p>id: {participant.id}</p>
-            <p>{participant.living ? 'living' : 'dead'}</p>
-          </Fragment>
-        )
-      })}
-    </>
+    <PageWrapper>
+      <PageTitle label="昼：誰が人狼か探りましょう" />
+      <Debug me={me} host={host} isHost={isHost} />
+      {state.votes.status === VoteStatus.INITIALIZED && (
+        <div className="p-4 bg-gray-200 rounded">
+          <p className="mb-4">
+            メッセージ入力（残り {state.timer.current} 秒）
+          </p>
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="bg-white rounded p-2 mb-4 w-full"
+          />
+          <button
+            onClick={handleSendMessage}
+            className="bg-blue-500 text-white rounded p-2 w-full"
+          >
+            メッセージ送信
+          </button>
+          <div className="h-32 overflow-y-auto bg-gray-100 rounded p-2 flex flex-col-reverse">
+            {state.publicMessages.map((publicMessage, index) => {
+              const { id, message } = publicMessage
+              const participant = state.participants.find(
+                (participant) => participant.id === id
+              )
+              if (!participant) return null
+              const { name } = participant
+              return (
+                <div
+                  key={`public-message-${id}-${index}`}
+                  className="flex flex-row-reverse justify-between align-middle mb-2"
+                >
+                  <p className="text-xs">{name}</p>
+                  <p className="">{message}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {state.votes.status === VoteStatus.STARTED && (
+        <div className="p-4 bg-gray-200 rounded">
+          <p className="mb-4">投票（残り {state.timer.current} 秒）</p>
+          <ul>
+            {!state.votes.vote[me] &&
+              state.participants.map((participant) => {
+                const { id, name } = participant
+                return (
+                  <li
+                    key={`vote-${id}`}
+                    className="flex justify-between align-middle mb-2"
+                  >
+                    <p className="">{name} さん</p>
+                    <button
+                      onClick={() => handleSendVote(id)}
+                      className="bg-blue-700 text-white rounded px-4"
+                    >
+                      この人が人狼
+                    </button>
+                  </li>
+                )
+              })}
+          </ul>
+        </div>
+      )}
+      <Participants participants={state.participants} me={me} />
+    </PageWrapper>
   )
 }

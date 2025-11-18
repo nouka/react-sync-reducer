@@ -1,4 +1,4 @@
-import { SyncStateProvider } from 'react-sync-reducer'
+import { SyncStateProvider } from '@nouka/react-sync-reducer'
 import { AppProvider } from './contexts/AppProvider'
 import { useApp } from './contexts/app-hooks'
 import { Daytime } from './routes/Daytime'

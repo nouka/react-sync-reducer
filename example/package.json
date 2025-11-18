@@ -3,6 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "esm/",
+    "lib/"
+  ],
   "scripts": {
     "build:lib": "NODE_ENV=production pnpm --prefix ../ i && pnpm --prefix ../ run build",
     "preinstall": "pnpm run build:lib",
@@ -18,7 +25,7 @@
     "express": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-sync-reducer": "link:..",
+    "@nouka/react-sync-reducer": "link:..",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.17"

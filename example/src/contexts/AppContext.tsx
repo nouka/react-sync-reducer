@@ -1,5 +1,5 @@
+import { useSyncReducer } from '@nouka/react-sync-reducer'
 import { createContext } from 'react'
-import { useSyncReducer } from 'react-sync-reducer'
 import type { Action } from '../types/action'
 import { type State } from '../types/state'
 

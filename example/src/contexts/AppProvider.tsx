@@ -1,5 +1,5 @@
+import { useSyncReducer } from '@nouka/react-sync-reducer'
 import { type PropsWithChildren } from 'react'
-import { useSyncReducer } from 'react-sync-reducer'
 import { reducer } from '../reducers'
 import { initState } from '../types/state'
 import { AppContext } from './AppContext'

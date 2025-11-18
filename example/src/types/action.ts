@@ -1,4 +1,4 @@
-import type { ActionBase } from 'react-sync-reducer'
+import type { ActionBase } from '@nouka/react-sync-reducer'
 import type { Identifier, Role } from './state'
 
 /**

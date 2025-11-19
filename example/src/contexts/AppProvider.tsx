@@ -15,10 +15,8 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
   )
 
   return (
-    <AppContext.Provider
-      value={{ state, dispatch, me, host, isHost, participant }}
-    >
+    <AppContext value={{ state, dispatch, me, host, isHost, participant }}>
       {children}
-    </AppContext.Provider>
+    </AppContext>
   )
 }

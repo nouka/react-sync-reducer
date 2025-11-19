@@ -43,9 +43,5 @@ export const SyncStateProvider: React.FC<
 
   if (!connection) return null
 
-  return (
-    <SyncStateContext.Provider value={{ connection }}>
-      {children}
-    </SyncStateContext.Provider>
-  )
+  return <SyncStateContext value={{ connection }}>{children}</SyncStateContext>
 }

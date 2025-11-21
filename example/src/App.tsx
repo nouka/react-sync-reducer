@@ -15,10 +15,10 @@ export const App = () => {
         initialize: async () => {
           const socket = io('localhost:9030')
           return {
-            emit: function (event, data) {
+            emit: (event, data) => {
               void socket.emit(event, data)
             },
-            on: function (event, callback) {
+            on: (event, callback) => {
               void socket.on(event, callback)
             }
           }

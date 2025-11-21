@@ -1,4 +1,5 @@
 import { SyncStateProvider } from '@nouka/react-sync-reducer'
+import { io } from 'socket.io-client'
 import { AppProvider } from './contexts/AppProvider'
 import { useApp } from './contexts/app-hooks'
 import { Daytime } from './routes/Daytime'
@@ -9,7 +10,21 @@ import { Page } from './types/state'
 
 export const App = () => {
   return (
-    <SyncStateProvider>
+    <SyncStateProvider
+      options={{
+        initialize: async () => {
+          const socket = io('localhost:9030')
+          return {
+            emit: function (event, data) {
+              void socket.emit(event, data)
+            },
+            on: function (event, callback) {
+              void socket.on(event, callback)
+            }
+          }
+        }
+      }}
+    >
       <AppProvider>
         <Route />
       </AppProvider>

@@ -18,7 +18,7 @@ export const useSyncReducer = <
   reducer: React.Reducer<T, A>,
   initState?: T
 ) => {
-  const { connection } = React.useContext(SyncStateContext)
+  const { connections, host, me, isHost } = React.useContext(SyncStateContext)
 
   /**
    * Reducer
@@ -75,10 +75,10 @@ export const useSyncReducer = <
    * データチャンネルのハンドラ登録
    */
   React.useEffect(() => {
-    const handler = connection.isHost ? hostHandler : clientHandler
-    const unsubscribe = connection.receiver.onMessage(handler)
+    const handler = isHost ? hostHandler : clientHandler
+    const unsubscribe = connections.onMessage(handler)
     return () => unsubscribe()
-  }, [connection.receiver, hostHandler, clientHandler, connection.isHost])
+  }, [hostHandler, clientHandler, isHost, connections])
 
   /**
    * 状態データ変更時の処理
@@ -88,15 +88,15 @@ export const useSyncReducer = <
   React.useEffect(() => {
     console.debug('sync state:', state)
     revision.current = state.revision ?? 0
-    if (connection.isHost) {
-      connection.sender.broadcast(
+    if (isHost) {
+      connections.broadcast(
         stringify({
           type: ActionType.DELIVE,
           payload: state
         })
       )
     }
-  }, [connection.isHost, connection.sender, state])
+  }, [connections, isHost, state])
 
   /**
    * アクションのディスパッチャ
@@ -107,11 +107,11 @@ export const useSyncReducer = <
    */
   const dispatchAction = React.useCallback(
     (action: A) => {
-      if (connection.isHost) {
+      if (isHost) {
         dispatch(action)
-      } else if (connection.host) {
-        connection.sender.sendTo(
-          connection.host,
+      } else if (host) {
+        connections.sendTo(
+          host,
           stringify({
             type: ActionType.REQUEST,
             payload: action
@@ -119,10 +119,9 @@ export const useSyncReducer = <
         )
       }
     },
-    [connection.host, connection.isHost, connection.sender]
+    [isHost, host, connections]
   )
 
-  const { me, host, isHost } = connection
   return {
     state,
     dispatch: dispatchAction,

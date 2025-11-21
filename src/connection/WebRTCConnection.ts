@@ -3,9 +3,9 @@ import { Connection } from './Connection'
 
 export interface WebRTCOptions {
   onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
-  peerConnectionOptions: RTCConfiguration
+  peerConnectionOptions?: RTCConfiguration
   dataChannelLabel: string
-  dataChannelOptions: RTCDataChannelInit
+  dataChannelOptions?: RTCDataChannelInit
 }
 
 /**

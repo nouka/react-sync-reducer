@@ -1,6 +1,7 @@
 import * as React from 'react'
-import { ConnectionManager } from '../connection-manager/ConnectionManager'
-import { ConnectionState } from '../constants'
+import { SocketAdapter } from '../adapters/SocketAdapter'
+import { WebRTCConnectionCreator } from '../connection-creator/WebRTCConnectionCreator'
+import { WebRTCConnections } from '../connections/WebRTCConnections'
 import { SyncStateProps } from '../types'
 import { SyncStateContext } from './SyncStateContext'
 
@@ -11,28 +12,36 @@ export const SyncStateProvider: React.FC<
   React.PropsWithChildren<SyncStateProps>
 > = ({ children, options }) => {
   const isBooted = React.useRef<boolean>(false)
+  const [connections, setConnections] =
+    React.useState<WebRTCConnections | null>(null)
 
-  const [connection, setConnection] = React.useState<ConnectionManager | null>(
-    null
+  const { initialize, roomName, dataChannelLabel, ...rest } = options
+  const adapter = React.useMemo(
+    () => new SocketAdapter(initialize),
+    [initialize]
+  )
+  const connectionCreator = React.useMemo(
+    () => new WebRTCConnectionCreator(adapter),
+    [adapter]
   )
 
   const bootstrap = React.useCallback(async () => {
     if (isBooted.current) return
     isBooted.current = true
 
-    const connection = new ConnectionManager(options)
-    const connectionState = await connection.connect()
-    console.debug('connectionState=', connectionState)
-    if (connectionState === ConnectionState.CONNECTED) {
-      setConnection(connection)
-    }
+    const connections = await connectionCreator.create({
+      roomName: roomName || 'default-room',
+      dataChannelLabel: dataChannelLabel || 'default-channel',
+      ...rest
+    })
+    setConnections(connections)
 
     return () => {
-      connection.close()
-      setConnection(null)
+      connections.close()
+      setConnections(null)
       isBooted.current = false
     }
-  }, [options])
+  }, [connectionCreator, dataChannelLabel, rest, roomName])
 
   React.useEffect(() => {
     ;(async () => {
@@ -41,7 +50,12 @@ export const SyncStateProvider: React.FC<
     })()
   }, [bootstrap])
 
-  if (!connection) return null
+  if (!connections) return null
 
-  return <SyncStateContext value={{ connection }}>{children}</SyncStateContext>
+  const { host, me, isHost } = connectionCreator
+  return (
+    <SyncStateContext value={{ connections, host, me, isHost }}>
+      {children}
+    </SyncStateContext>
+  )
 }

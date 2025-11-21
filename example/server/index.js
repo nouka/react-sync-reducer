@@ -41,34 +41,34 @@ io.on('connection', (socket) => {
    * 切断イベントの登録
    */
   socket.on('disconnect', () => {
-    console.log('id=' + socket.id + ' exit room:' + socket.roomname)
-    socket.broadcast.to(socket.roomname).emit('DISCONNECTED', { id: socket.id })
+    console.log('id=' + socket.id + ' exit room:' + socket.roomName)
+    socket.broadcast.to(socket.roomName).emit('DISCONNECTED', { id: socket.id })
   })
 
   /**
    * 入室イベント
    */
-  socket.on('ENTER', function (roomname) {
-    const isHost = socket.adapter.rooms.get(roomname) ? false : true
-    socket.join(roomname)
+  socket.on('ENTER', function ({ roomName }) {
+    const isHost = socket.adapter.rooms.get(roomName) ? false : true
+    socket.join(roomName)
     console.log(
-      'id=' + socket.id + ' enter room:' + roomname + ' isHost: ' + isHost
+      'id=' + socket.id + ' enter room:' + roomName + ' isHost: ' + isHost
     )
-    socket.roomname = roomname
+    socket.roomName = roomName
     socket.isHost = isHost
     if (isHost) {
       socket.emit('YOU_HOST')
       return
     }
-    socket.broadcast.to(socket.roomname).emit('JOINED', { id: socket.id })
+    socket.broadcast.to(socket.roomName).emit('JOINED', { id: socket.id })
   })
 
   /**
    * 退室イベント
    */
   socket.on('EXIT', function () {
-    socket.leave(socket.roomname)
-    socket.broadcast.to(socket.roomname).emit('LEAVE_USER', { id: socket.id })
+    socket.leave(socket.roomName)
+    socket.broadcast.to(socket.roomName).emit('LEAVE_USER', { id: socket.id })
   })
 
   /**
@@ -76,10 +76,11 @@ io.on('connection', (socket) => {
    */
   socket.on('SDP', function (data) {
     data.sdp.id = socket.id
+    const { sdp } = data
     if (data.target) {
-      socket.to(data.target).emit('SDP', data.sdp)
+      socket.to(data.target).emit('SDP', { sdp })
     } else {
-      socket.broadcast.to(socket.roomname).emit('SDP', data.sdp)
+      socket.broadcast.to(socket.roomName).emit('SDP', { sdp })
     }
   })
 
@@ -89,7 +90,8 @@ io.on('connection', (socket) => {
   socket.on('CANDIDATE', function (data) {
     if (data.target) {
       data.ice.id = socket.id
-      socket.to(data.target).emit('CANDIDATE', data.ice)
+      const { ice } = data
+      socket.to(data.target).emit('CANDIDATE', { ice })
     } else {
       console.log('candidate need target id')
     }
@@ -100,7 +102,7 @@ io.on('connection', (socket) => {
    */
   socket.on('COMPLETE', function () {
     socket.broadcast
-      .to(socket.roomname)
+      .to(socket.roomName)
       .emit('COMPLETED', socket.isHost && { hostId: socket.id })
   })
 })

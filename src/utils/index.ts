@@ -88,20 +88,3 @@ export const customEventListener = <T>(
   window.addEventListener(type, listener, false)
   return () => window.removeEventListener(type, listener, false)
 }
-
-/**
- * オプションのマージ
- *
- * @param defaultOptions デフォルトオプション
- * @param options 追加オプション
- * @returns
- */
-export const margeDefaultOptions = <T>(
-  defaultOptions: T,
-  options?: Partial<T>
-): T => {
-  return {
-    ...defaultOptions,
-    ...options
-  }
-}

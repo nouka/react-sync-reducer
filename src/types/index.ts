@@ -1,9 +1,6 @@
-import { Socket } from 'socket.io-client'
-import {
-  ConnectionManager,
-  ConnectionManagerOptions
-} from '../connection-manager/ConnectionManager'
-import { RECEIVE_EVENTS } from '../constants'
+import { Initialize } from '../adapters/Adapter'
+import { WebRTCOptions } from '../connection/WebRTCConnection'
+import { Connections } from '../connections/Connections'
 
 export type Identifier = string | number
 
@@ -29,61 +26,19 @@ export type RequestAction<T> = ActionBase<typeof ActionType.REQUEST, T>
 export type State = { [key: string]: unknown } & { revision?: number }
 
 export interface ISyncStateContext {
-  connection: ConnectionManager
+  connections: Connections
+  host: Identifier
+  me: Identifier
+  isHost: boolean
 }
 
 export type SyncStateProps = {
-  options?: Partial<ConnectionManagerOptions>
+  options: {
+    roomName?: string
+    initialize: Initialize
+  } & Partial<Omit<WebRTCOptions, 'onIceCandidate'>>
 }
 
 export const CustomEventType = {
   ON_DATA_CHANNEL_MESSAGE: 'ON_DATA_CHANNEL_MESSAGE'
 } as const
-
-export type ReceiveEventHandlers = Set<
-  | {
-      type: typeof RECEIVE_EVENTS.CONNECTED
-      handler: (
-        socket: Socket,
-        resolve: (
-          value:
-            | { socket: Socket; id: Identifier }
-            | PromiseLike<{ socket: Socket; id: Identifier }>
-        ) => void,
-        data: { id: Identifier }
-      ) => void
-    }
-  | {
-      type: typeof RECEIVE_EVENTS.DISCONNECTED
-      handler: (data: { id: Identifier }) => void
-    }
-  | {
-      type: typeof RECEIVE_EVENTS.YOU_HOST
-      handler: () => void
-    }
-  | {
-      type: typeof RECEIVE_EVENTS.JOINED
-      handler: (socket: Socket, data: { id: Identifier }) => void
-    }
-  | {
-      type: typeof RECEIVE_EVENTS.SDP
-      handler: (
-        socket: Socket,
-        sdp: RTCSessionDescription & {
-          id: Identifier
-        }
-      ) => void
-    }
-  | {
-      type: typeof RECEIVE_EVENTS.CANDIDATE
-      handler: (
-        ice: RTCIceCandidate & {
-          id: Identifier
-        }
-      ) => void
-    }
-  | {
-      type: typeof RECEIVE_EVENTS.COMPLETED
-      handler: (data: { hostId?: Identifier }) => void
-    }
->

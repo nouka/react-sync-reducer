@@ -1,6 +1,7 @@
 import { Initialize } from '../adapters/Adapter'
 import { WebRTCOptions } from '../connection/WebRTCConnection'
 import { Connections } from '../connections/Connections'
+import { RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
 
 export type Identifier = string | number
 
@@ -27,18 +28,71 @@ export type State = { [key: string]: unknown } & { revision?: number }
 
 export interface ISyncStateContext {
   connections: Connections
-  host: Identifier
-  me: Identifier
-  isHost: boolean
 }
 
 export type SyncStateProps = {
   options: {
     roomName?: string
     initialize: Initialize
+    destroy: () => void
   } & Partial<Omit<WebRTCOptions, 'onIceCandidate'>>
 }
 
 export const CustomEventType = {
   ON_DATA_CHANNEL_MESSAGE: 'ON_DATA_CHANNEL_MESSAGE'
 } as const
+
+export type EventEmitter = {
+  (event: typeof SEND_EVENTS.ENTER, data: { roomName: string }): void
+  (
+    event: typeof SEND_EVENTS.CANDIDATE,
+    data: { target: Identifier; ice: RTCIceCandidate | null }
+  ): void
+  (
+    event: typeof SEND_EVENTS.SDP,
+    data: {
+      target: Identifier
+      sdp: RTCSessionDescription | null
+    }
+  ): void
+  (event: typeof SEND_EVENTS.COMPLETE, data: null): void
+}
+
+export type EventHandler = {
+  (
+    event: typeof RECEIVE_EVENTS.CONNECTED,
+    callback: (data: { id: Identifier }) => Promise<void>
+  ): void
+  (
+    event: typeof RECEIVE_EVENTS.DISCONNECTED,
+    callback: (data: { id: Identifier }) => Promise<void>
+  ): void
+  (
+    event: typeof RECEIVE_EVENTS.YOU_HOST,
+    callback: (data: null) => Promise<void>
+  ): void
+  (
+    event: typeof RECEIVE_EVENTS.JOINED,
+    callback: (data: { id: Identifier }) => Promise<void>
+  ): void
+  (
+    event: typeof RECEIVE_EVENTS.SDP,
+    callback: (data: {
+      sdp: RTCSessionDescription & {
+        id: Identifier
+      }
+    }) => Promise<void>
+  ): void
+  (
+    event: typeof RECEIVE_EVENTS.CANDIDATE,
+    callback: (data: {
+      ice: RTCIceCandidate & {
+        id: Identifier
+      }
+    }) => Promise<void>
+  ): void
+  (
+    event: typeof RECEIVE_EVENTS.COMPLETED,
+    callback: (data: { hostId?: Identifier }) => Promise<void>
+  ): void
+}

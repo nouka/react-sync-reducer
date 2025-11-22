@@ -2,13 +2,10 @@ import { SocketAdapter } from '../adapters/SocketAdapter'
 import { WebRTCOptions } from '../connection/WebRTCConnection'
 import { WebRTCConnections } from '../connections/WebRTCConnections'
 import { RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
-import { Identifier } from '../types'
 import { ConnectionCreator } from './ConnectionCreator'
 
 export class WebRTCConnectionCreator implements ConnectionCreator {
   private adapter: SocketAdapter
-  private myId: Identifier = ''
-  private hostId: Identifier = ''
 
   constructor(adapter: SocketAdapter) {
     this.adapter = adapter
@@ -24,14 +21,18 @@ export class WebRTCConnectionCreator implements ConnectionCreator {
       const { roomName, ...rest } = options
       const connections = new WebRTCConnections(rest)
       on(RECEIVE_EVENTS.CONNECTED, async ({ id }) => {
-        this.myId = id
+        connections.me = id
         emit(SEND_EVENTS.ENTER, { roomName })
       })
       on(RECEIVE_EVENTS.DISCONNECTED, async ({ id }) => {
+        if (connections.host === id) {
+          connections.close()
+          return
+        }
         connections.leave(id)
       })
       on(RECEIVE_EVENTS.YOU_HOST, async () => {
-        this.hostId = this.myId
+        connections.host = connections.me
       })
       on(RECEIVE_EVENTS.JOINED, async ({ id }) => {
         const peerConnection = await connections.join(id, (evt) => {
@@ -74,19 +75,9 @@ export class WebRTCConnectionCreator implements ConnectionCreator {
         await connections.candidate(ice)
       })
       on(RECEIVE_EVENTS.COMPLETED, async ({ hostId }) => {
-        this.hostId = hostId || ''
+        if (hostId) connections.host = hostId
         resolve(connections)
       })
     })
-  }
-
-  get host() {
-    return this.hostId
-  }
-  get me() {
-    return this.myId
-  }
-  get isHost() {
-    return this.myId === this.hostId
   }
 }

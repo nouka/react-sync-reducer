@@ -8,6 +8,8 @@ type Options = Omit<WebRTCOptions, 'onIceCandidate'>
 export class WebRTCConnections implements Connections {
   private connections: Map<Identifier, WebRTCConnection> = new Map()
   private options: Options
+  private myId: Identifier = ''
+  private hostId: Identifier = ''
 
   constructor(options: Options) {
     this.options = options
@@ -92,5 +94,21 @@ export class WebRTCConnections implements Connections {
     const connection = new WebRTCConnection({ ...this.options, onIceCandidate })
     this.connections.set(id, connection)
     return connection
+  }
+
+  set host(hostId: Identifier) {
+    this.hostId = hostId
+  }
+  set me(myId) {
+    this.myId = myId
+  }
+  get host() {
+    return this.hostId
+  }
+  get me() {
+    return this.myId
+  }
+  get isHost() {
+    return this.myId === this.hostId
   }
 }

@@ -9,11 +9,11 @@ import { Result } from './routes/Result'
 import { Page } from './types/state'
 
 export const App = () => {
+  const socket = io('localhost:9030')
   return (
     <SyncStateProvider
       options={{
         initialize: async () => {
-          const socket = io('localhost:9030')
           return {
             emit: (event, data) => {
               void socket.emit(event, data)
@@ -22,6 +22,9 @@ export const App = () => {
               void socket.on(event, callback)
             }
           }
+        },
+        destroy: () => {
+          socket.close()
         }
       }}
     >

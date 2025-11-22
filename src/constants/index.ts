@@ -10,7 +10,6 @@ export const RECEIVE_EVENTS = {
 
 export const SEND_EVENTS = {
   ENTER: 'ENTER',
-  EXIT: 'EXIT',
   CANDIDATE: 'CANDIDATE',
   SDP: 'SDP',
   COMPLETE: 'COMPLETE'

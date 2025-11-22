@@ -33,20 +33,21 @@ io.on('connection', (socket) => {
   console.log('a user connected')
 
   /**
-   * 接続完了イベント
+   * 接続完了
    */
   socket.emit('CONNECTED', { id: socket.id })
 
   /**
-   * 切断イベントの登録
+   * 切断
    */
   socket.on('disconnect', () => {
     console.log('id=' + socket.id + ' exit room:' + socket.roomName)
+    socket.leave(socket.roomName)
     socket.broadcast.to(socket.roomName).emit('DISCONNECTED', { id: socket.id })
   })
 
   /**
-   * 入室イベント
+   * 入室
    */
   socket.on('ENTER', function ({ roomName }) {
     const isHost = socket.adapter.rooms.get(roomName) ? false : true
@@ -61,14 +62,6 @@ io.on('connection', (socket) => {
       return
     }
     socket.broadcast.to(socket.roomName).emit('JOINED', { id: socket.id })
-  })
-
-  /**
-   * 退室イベント
-   */
-  socket.on('EXIT', function () {
-    socket.leave(socket.roomName)
-    socket.broadcast.to(socket.roomName).emit('LEAVE_USER', { id: socket.id })
   })
 
   /**

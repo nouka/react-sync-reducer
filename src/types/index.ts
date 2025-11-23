@@ -1,4 +1,3 @@
-import { Initialize } from '../adapters/Adapter'
 import { WebRTCOptions } from '../connection/WebRTCConnection'
 import { Connections } from '../connections/Connections'
 import { RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
@@ -33,8 +32,11 @@ export interface ISyncStateContext {
 export type SyncStateProps = {
   options: {
     roomName?: string
-    initialize: Initialize
-    destroy: () => void
+    connect: () => Promise<{
+      emit: EventEmitter
+      on: EventHandler
+    }>
+    disconnect: () => void
   } & Partial<Omit<WebRTCOptions, 'onIceCandidate'>>
 }
 

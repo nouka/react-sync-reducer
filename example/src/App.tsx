@@ -13,19 +13,11 @@ export const App = () => {
   return (
     <SyncStateProvider
       options={{
-        initialize: async () => {
-          return {
-            emit: (event, data) => {
-              void socket.emit(event, data)
-            },
-            on: (event, callback) => {
-              void socket.on(event, callback)
-            }
-          }
-        },
-        destroy: () => {
-          socket.close()
-        }
+        connect: async () => ({
+          emit: (...args) => void socket.emit(...args),
+          on: (...args) => void socket.on(...args)
+        }),
+        disconnect: () => socket.close()
       }}
     >
       <AppProvider>

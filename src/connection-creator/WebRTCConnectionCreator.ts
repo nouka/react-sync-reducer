@@ -27,7 +27,7 @@ export class WebRTCConnectionCreator implements ConnectionCreator {
       on(RECEIVE_EVENTS.DISCONNECTED, async ({ id }) => {
         if (connections.host === id) {
           connections.close()
-          this.adapter.close()
+          this.adapter.disconnect()
           return
         }
         connections.leave(id)

@@ -1,4 +1,4 @@
-import { CustomEventType, Identifier } from '../types'
+import { CustomEventType } from '../types'
 import { Connection } from './Connection'
 
 export interface WebRTCOptions {
@@ -14,116 +14,26 @@ export interface WebRTCOptions {
 export class WebRTCConnection implements Connection {
   private options: WebRTCOptions
 
-  private peerConnection: RTCPeerConnection
-  private dataChannel: RTCDataChannel | undefined
+  private _pc: RTCPeerConnection
+  private _dc: RTCDataChannel | undefined
 
   constructor(options: WebRTCOptions) {
     this.options = options
-    this.peerConnection = this.createPeerConnection()
+    this._pc = this.createPeerConnection()
   }
 
   /**
    * ピア接続を閉じる
    */
   public close() {
-    this.dataChannel?.close()
-    this.peerConnection.close()
-  }
-
-  /**
-   * ピア接続を作成しオファーを送信する
-   * 通信の最初のシーケンス
-   */
-  public makeOfferToPeer = async () => {
-    // Data channel を生成
-    this.createDataChannel()
-
-    try {
-      const sessionDescription = await this.peerConnection.createOffer()
-      console.debug('createOffer() succeeded.')
-      await this.peerConnection.setLocalDescription(sessionDescription)
-      // setLocalDescription() が成功した場合
-      // Trickle ICE ではここで SDP を相手に通知する
-      // Vanilla ICE では ICE candidate が揃うのを待つ
-      console.debug('setLocalDescription() succeeded.')
-      return this.peerConnection
-    } catch (err) {
-      console.error('setLocalDescription() failed.', err)
-    }
-    return
-  }
-
-  /**
-   * オファーを受けてアンサーを作成する
-   * 2番目のシーケンス
-   *
-   * @param sdp オファー（SDP）
-   * @returns
-   */
-  public receiveOfferFromPeer = async (
-    sdp: RTCSessionDescription & { id: Identifier }
-  ) => {
-    const offer = new RTCSessionDescription(sdp)
-    try {
-      await this.peerConnection.setRemoteDescription(offer)
-      console.debug('setRemoteDescription() succeeded.')
-    } catch (err) {
-      console.error('setRemoteDescription() failed.', err)
-    }
-    // Answer を生成
-    try {
-      const sessionDescription = await this.peerConnection.createAnswer()
-      console.debug('createAnswer() succeeded.')
-      await this.peerConnection.setLocalDescription(sessionDescription)
-      // setLocalDescription() が成功した場合
-      // Trickle ICE ではここで SDP を相手に通知する
-      // Vanilla ICE では ICE candidate が揃うのを待つ
-      console.debug('setLocalDescription() succeeded.')
-      return this.peerConnection
-    } catch (err) {
-      console.error('setLocalDescription() failed.', err)
-    } finally {
-      console.debug('answer created')
-    }
-    return
-  }
-
-  /**
-   * アンサーを受ける
-   * 3番目のシーケンス
-   *
-   * @param sdp アンサー（SDP）
-   * @returns
-   */
-  public receiveAnswerFromPeer = async (
-    sdp: RTCSessionDescription & { id: Identifier }
-  ) => {
-    const answer = new RTCSessionDescription(sdp)
-    try {
-      await this.peerConnection.setRemoteDescription(answer)
-      console.debug('setRemoteDescription() succeeded.')
-    } catch (err) {
-      console.error('setRemoteDescription() failed.', err)
-    }
-  }
-
-  /**
-   * ICE CANDIDATEを受け取り追加する
-   *
-   * @param ice ICE CANDIDATE
-   * @returns
-   */
-  public receiveCandidateFromPeer = async (
-    ice: RTCIceCandidate & { id: Identifier }
-  ) => {
-    const candidate = new RTCIceCandidate(ice)
-    this.peerConnection.addIceCandidate(candidate)
+    this._dc?.close()
+    this._pc.close()
   }
 
   /**
    * 新しい RTCPeerConnection を作成する
    *
-   * @returns
+   * @returns RTCPeerConnection
    */
   private createPeerConnection = () => {
     const { onIceCandidate, peerConnectionOptions } = this.options
@@ -132,17 +42,7 @@ export class WebRTCConnection implements Connection {
     // ICE candidate 取得時のイベントハンドラを登録
     pc.onicecandidate = async (evt) => {
       if (evt.candidate) {
-        // 一部の ICE candidate を取得
-        // Trickle ICE では ICE candidate を相手に通知する
-        console.debug(evt.candidate)
         onIceCandidate(evt)
-        console.debug('Collecting ICE candidates')
-      } else {
-        // 全ての ICE candidate の取得完了（空の ICE candidate イベント）
-        // Vanilla ICE では，全てのICE candidate を含んだ SDP を相手に通知する
-        // （SDP は pc.localDescription.sdp で取得できる）
-        // 今回は手動でシグナリングするため textarea に SDP を表示する
-        console.debug('Vanilla ICE ready')
       }
     }
 
@@ -165,7 +65,7 @@ export class WebRTCConnection implements Connection {
     pc.ondatachannel = (evt) => {
       console.debug('Data channel created:', evt)
       this.setupDataChannel(evt.channel)
-      this.dataChannel = evt.channel
+      this._dc = evt.channel
     }
 
     return pc
@@ -174,14 +74,14 @@ export class WebRTCConnection implements Connection {
   /**
    * Data channel を作成する
    */
-  private createDataChannel = () => {
+  public createDataChannel = () => {
     const { dataChannelLabel, dataChannelOptions } = this.options
-    const dataChannel = this.peerConnection.createDataChannel(
+    const dataChannel = this._pc.createDataChannel(
       dataChannelLabel,
       dataChannelOptions
     )
     this.setupDataChannel(dataChannel)
-    this.dataChannel = dataChannel
+    this._dc = dataChannel
   }
 
   /**
@@ -209,18 +109,12 @@ export class WebRTCConnection implements Connection {
   }
 
   get pc() {
-    return this.peerConnection
+    return this._pc
   }
   get dc() {
-    if (!this.dataChannel) {
+    if (!this._dc) {
       throw new Error('Data channel is not established yet.')
     }
-    return this.dataChannel
-  }
-  set pc(peerConnection: RTCPeerConnection) {
-    this.peerConnection = peerConnection
-  }
-  set dc(dataChannel: RTCDataChannel) {
-    this.dataChannel = dataChannel
+    return this._dc
   }
 }

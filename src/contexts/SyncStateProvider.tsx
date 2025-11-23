@@ -16,10 +16,10 @@ export const SyncStateProvider: React.FC<
   const [connections, setConnections] =
     React.useState<WebRTCConnections | null>(null)
 
-  const { initialize, destroy, roomName, dataChannelLabel, ...rest } = options
+  const { connect, disconnect, roomName, dataChannelLabel, ...rest } = options
   const adapter = React.useMemo(
-    () => new SocketAdapter(initialize, destroy),
-    [destroy, initialize]
+    () => new SocketAdapter(connect, disconnect),
+    [connect, disconnect]
   )
   const connectionCreator = React.useMemo(
     () => new WebRTCConnectionCreator(adapter),
@@ -40,7 +40,7 @@ export const SyncStateProvider: React.FC<
     return () => {
       connections.close()
       setConnections(null)
-      adapter.close()
+      adapter.disconnect()
       isBooted.current = false
     }
   }, [adapter, connectionCreator, dataChannelLabel, rest, roomName])

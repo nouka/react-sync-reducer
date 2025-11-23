@@ -1,19 +1,29 @@
-import { Adapter, Initialize } from './Adapter'
+import { EventEmitter, EventHandler } from '../types'
+import { Adapter } from './Adapter'
 
 export class SocketAdapter implements Adapter {
-  private init: Initialize
-  private destroy: () => void
+  private _connect: () => Promise<{
+    emit: EventEmitter
+    on: EventHandler
+  }>
+  private _disconnect: () => void
 
-  constructor(initialize: Initialize, destroy: () => void) {
-    this.init = initialize
-    this.destroy = destroy
+  constructor(
+    connect: () => Promise<{
+      emit: EventEmitter
+      on: EventHandler
+    }>,
+    disconnect: () => void
+  ) {
+    this._connect = connect
+    this._disconnect = disconnect
   }
 
   public connect = async () => {
-    return this.init()
+    return this._connect()
   }
 
-  public close = () => {
-    return this.destroy()
+  public disconnect = () => {
+    return this._disconnect()
   }
 }

@@ -2,6 +2,7 @@ import * as React from 'react'
 import { SocketAdapter } from '../adapters/SocketAdapter'
 import { WebRTCConnectionCreator } from '../connection-creator/WebRTCConnectionCreator'
 import { WebRTCConnections } from '../connections/WebRTCConnections'
+import { CONNECTION_STATE } from '../constants'
 import { SyncStateProps } from '../types'
 import { SyncStateContext } from './SyncStateContext'
 
@@ -51,7 +52,7 @@ export const SyncStateProvider: React.FC<
     })()
   }, [bootstrap])
 
-  if (!connections) return null
+  if (!connections || connections.state === CONNECTION_STATE.CLOSED) return null
 
   return <SyncStateContext value={{ connections }}>{children}</SyncStateContext>
 }

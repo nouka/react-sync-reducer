@@ -55,7 +55,7 @@ export type EventEmitter = {
       sdp: RTCSessionDescription | null
     }
   ): void
-  (event: typeof SEND_EVENTS.COMPLETE, data: null): void
+  (event: typeof SEND_EVENTS.COMPLETE, data: { target: Identifier }): void
 }
 
 export type EventHandler = {
@@ -66,10 +66,6 @@ export type EventHandler = {
   (
     event: typeof RECEIVE_EVENTS.DISCONNECTED,
     callback: (data: { id: Identifier }) => Promise<void>
-  ): void
-  (
-    event: typeof RECEIVE_EVENTS.YOU_HOST,
-    callback: (data: null) => Promise<void>
   ): void
   (
     event: typeof RECEIVE_EVENTS.JOINED,
@@ -93,6 +89,6 @@ export type EventHandler = {
   ): void
   (
     event: typeof RECEIVE_EVENTS.COMPLETED,
-    callback: (data: { hostId?: Identifier }) => Promise<void>
+    callback: (data: { id: Identifier; isHost: boolean }) => Promise<void>
   ): void
 }

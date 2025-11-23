@@ -1,4 +1,5 @@
 import { WebRTCConnection, WebRTCOptions } from '../connection/WebRTCConnection'
+import { CONNECTION_STATE } from '../constants'
 import { CustomEventType, Identifier } from '../types'
 import { customEventListener } from '../utils'
 import { Connections } from './Connections'
@@ -7,6 +8,7 @@ type Options = Omit<WebRTCOptions, 'onIceCandidate'>
 
 export class WebRTCConnections implements Connections {
   private connections: Map<Identifier, WebRTCConnection> = new Map()
+  private _state: keyof typeof CONNECTION_STATE = CONNECTION_STATE.CLOSED
   private options: Options
   private myId: Identifier = ''
   private hostId: Identifier = ''
@@ -82,6 +84,9 @@ export class WebRTCConnections implements Connections {
       connection.close()
     })
     this.connections.clear()
+    this.state = CONNECTION_STATE.CLOSED
+    this.myId = ''
+    this.hostId = ''
   }
 
   private getConnection = (
@@ -96,11 +101,17 @@ export class WebRTCConnections implements Connections {
     return connection
   }
 
+  set state(state: keyof typeof CONNECTION_STATE) {
+    this._state = state
+  }
   set host(hostId: Identifier) {
     this.hostId = hostId
   }
   set me(myId) {
     this.myId = myId
+  }
+  get state() {
+    return this._state
   }
   get host() {
     return this.hostId

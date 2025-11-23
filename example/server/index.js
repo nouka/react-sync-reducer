@@ -42,25 +42,25 @@ io.on('connection', (socket) => {
    */
   socket.on('disconnect', () => {
     console.log('id=' + socket.id + ' exit room:' + socket.roomName)
-    socket.leave(socket.roomName)
     socket.broadcast.to(socket.roomName).emit('DISCONNECTED', { id: socket.id })
+    socket.leave(socket.roomName)
   })
 
   /**
    * 入室
    */
   socket.on('ENTER', function ({ roomName }) {
-    const isHost = socket.adapter.rooms.get(roomName) ? false : true
+    socket.isHost = socket.adapter.rooms.get(roomName) ? false : true
     socket.join(roomName)
     console.log(
-      'id=' + socket.id + ' enter room:' + roomName + ' isHost: ' + isHost
+      'id=' +
+        socket.id +
+        ' enter room:' +
+        roomName +
+        ' isHost: ' +
+        socket.isHost
     )
     socket.roomName = roomName
-    socket.isHost = isHost
-    if (isHost) {
-      socket.emit('YOU_HOST')
-      return
-    }
     socket.broadcast.to(socket.roomName).emit('JOINED', { id: socket.id })
   })
 
@@ -69,6 +69,7 @@ io.on('connection', (socket) => {
    */
   socket.on('SDP', function (data) {
     data.sdp.id = socket.id
+    data.sdp.isHost = socket.isHost
     const { sdp } = data
     if (data.target) {
       socket.to(data.target).emit('SDP', { sdp })
@@ -93,9 +94,10 @@ io.on('connection', (socket) => {
   /**
    * 完了
    */
-  socket.on('COMPLETE', function () {
-    socket.broadcast
-      .to(socket.roomName)
-      .emit('COMPLETED', socket.isHost && { hostId: socket.id })
+  socket.on('COMPLETE', function (data) {
+    socket.emit('COMPLETED', { id: socket.id, isHost: socket.isHost })
+    socket
+      .to(data.target)
+      .emit('COMPLETED', { id: socket.id, isHost: socket.isHost })
   })
 })

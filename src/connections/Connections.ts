@@ -1,6 +1,8 @@
+import { CONNECTION_STATE } from '../constants'
 import { Identifier } from '../types'
 
 export interface Connections {
+  state: keyof typeof CONNECTION_STATE
   host: Identifier
   me: Identifier
   readonly isHost: boolean

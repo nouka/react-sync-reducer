@@ -1,7 +1,7 @@
 import { SocketAdapter } from '../adapters/SocketAdapter'
 import { WebRTCOptions } from '../connection/WebRTCConnection'
 import { WebRTCConnections } from '../connections/WebRTCConnections'
-import { RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
+import { CONNECTION_STATE, RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
 import { ConnectionCreator } from './ConnectionCreator'
 
 export class WebRTCConnectionCreator implements ConnectionCreator {
@@ -27,12 +27,10 @@ export class WebRTCConnectionCreator implements ConnectionCreator {
       on(RECEIVE_EVENTS.DISCONNECTED, async ({ id }) => {
         if (connections.host === id) {
           connections.close()
+          this.adapter.close()
           return
         }
         connections.leave(id)
-      })
-      on(RECEIVE_EVENTS.YOU_HOST, async () => {
-        connections.host = connections.me
       })
       on(RECEIVE_EVENTS.JOINED, async ({ id }) => {
         const peerConnection = await connections.join(id, (evt) => {
@@ -65,8 +63,7 @@ export class WebRTCConnectionCreator implements ConnectionCreator {
           }
           case 'answer': {
             await connections.answer(sdp)
-            emit(SEND_EVENTS.COMPLETE, null)
-            resolve(connections)
+            emit(SEND_EVENTS.COMPLETE, { target: sdp.id })
             break
           }
         }
@@ -74,9 +71,12 @@ export class WebRTCConnectionCreator implements ConnectionCreator {
       on(RECEIVE_EVENTS.CANDIDATE, async ({ ice }) => {
         await connections.candidate(ice)
       })
-      on(RECEIVE_EVENTS.COMPLETED, async ({ hostId }) => {
-        if (hostId) connections.host = hostId
-        resolve(connections)
+      on(RECEIVE_EVENTS.COMPLETED, async ({ id, isHost }) => {
+        if (isHost) {
+          connections.host = id
+          connections.state = CONNECTION_STATE.CONNECTED
+          resolve(connections)
+        }
       })
     })
   }

@@ -184,13 +184,6 @@ const MidnightReducer: Reducer<State, Action> = (state, action) => {
         votes: { ...state.votes, vote: { ...state.votes.vote, [from]: to } }
       }
     }
-    case ActionType.PRIVATE_MESSAGE: {
-      const { id, message } = action.payload
-      return {
-        ...state,
-        privateMessages: [...state.privateMessages, { id, message }]
-      }
-    }
     default:
       return state
   }

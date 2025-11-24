@@ -69,12 +69,9 @@ io.on('connection', (socket) => {
    */
   socket.on('SDP', function (data) {
     data.sdp.id = socket.id
-    data.sdp.isHost = socket.isHost
     const { sdp } = data
     if (data.target) {
       socket.to(data.target).emit('SDP', { sdp })
-    } else {
-      socket.broadcast.to(socket.roomName).emit('SDP', { sdp })
     }
   })
 

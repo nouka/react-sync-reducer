@@ -1,12 +1,5 @@
-import { CustomEventType } from '../types'
+import { CustomEventType, WebRTCOptions } from '../types'
 import { Connection } from './Connection'
-
-export interface WebRTCOptions {
-  onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
-  peerConnectionOptions?: RTCConfiguration
-  dataChannelLabel: string
-  dataChannelOptions?: RTCDataChannelInit
-}
 
 /**
  * WebRTCによるピア接続を管理するクラス

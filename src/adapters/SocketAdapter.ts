@@ -1,7 +1,6 @@
 import { EventEmitter, EventHandler } from '../types'
-import { Adapter } from './Adapter'
 
-export class SocketAdapter implements Adapter {
+export class SocketAdapter {
   private _connect: () => Promise<{
     emit: EventEmitter
     on: EventHandler
@@ -9,11 +8,8 @@ export class SocketAdapter implements Adapter {
   private _disconnect: () => void
 
   constructor(
-    connect: () => Promise<{
-      emit: EventEmitter
-      on: EventHandler
-    }>,
-    disconnect: () => void
+    connect: typeof this._connect,
+    disconnect: typeof this._disconnect
   ) {
     this._connect = connect
     this._disconnect = disconnect

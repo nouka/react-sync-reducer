@@ -1,6 +1,6 @@
-import { WebRTCConnection, WebRTCOptions } from '../connection/WebRTCConnection'
+import { WebRTCConnection } from '../connection/WebRTCConnection'
 import { CONNECTION_STATE } from '../constants'
-import { CustomEventType, Identifier } from '../types'
+import { CustomEventType, Identifier, WebRTCOptions } from '../types'
 import { customEventListener } from '../utils'
 import { Connections } from './Connections'
 

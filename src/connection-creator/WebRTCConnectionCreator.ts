@@ -1,7 +1,7 @@
 import { SocketAdapter } from '../adapters/SocketAdapter'
-import { WebRTCOptions } from '../connection/WebRTCConnection'
 import { WebRTCConnections } from '../connections/WebRTCConnections'
 import { CONNECTION_STATE, RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
+import { WebRTCOptions } from '../types'
 import { ConnectionCreator } from './ConnectionCreator'
 
 export class WebRTCConnectionCreator implements ConnectionCreator {

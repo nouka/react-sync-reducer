@@ -1,4 +1,3 @@
-import { WebRTCOptions } from '../connection/WebRTCConnection'
 import { Connections } from '../connections/Connections'
 import { RECEIVE_EVENTS, SEND_EVENTS } from '../constants'
 
@@ -93,4 +92,11 @@ export type EventHandler = {
     event: typeof RECEIVE_EVENTS.COMPLETED,
     callback: (data: { id: Identifier; isHost: boolean }) => Promise<void>
   ): void
+}
+
+export interface WebRTCOptions {
+  onIceCandidate: (evt: RTCPeerConnectionIceEvent) => void
+  peerConnectionOptions?: RTCConfiguration
+  dataChannelLabel: string
+  dataChannelOptions?: RTCDataChannelInit
 }

@@ -1,6 +1,6 @@
 {
   "name": "@nouka/react-sync-reducer",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "description": "React hook for synchronized state management using reducers and WebRTC data channels.",
   "author": "nouka",
   "license": "ISC",
